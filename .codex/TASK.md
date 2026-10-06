@@ -341,7 +341,7 @@ finished modules.
   explicit PDF path, output directory, and options inputs; both sequential and
   Rayon paths call it.
 
-- [ ] **CLI1 — Define and implement the local conversion CLI.** **Depends on:**
+- [x] **CLI1 — Define and implement the local conversion CLI.** **Depends on:**
   C2, C3, C4. **Parallel:** no. Complete these actions in
   `crates/opendataloader_cli`:
   1. Document the contract for `--input-paths`, `--out-dir`, `--json`,
@@ -361,6 +361,10 @@ finished modules.
   selection, image output, opt-in parallel conversion, and a conversion error;
   end-to-end outputs match committed references; CLI tests remain beside the
   argument/parsing functions they test.
+  Implemented validated Clap arguments for local PDF paths, output directory,
+  JSON/Markdown/image selection, and opt-in parallel conversion. Added
+  directory rejection, nonzero failures, help documentation, colocated CLI
+  tests, and `docs/cli.md` describing outputs and validation.
 
 - [ ] **ABI1 — Define and implement the local batch C ABI.** **Depends on:**
   B1, C2, C3, C4. **Parallel:** yes, with CLI1 after the core options and batch

@@ -111,3 +111,12 @@ explicit `convert_one` function and reused it from sequential and Rayon batch
 paths. `cargo fmt --all -- --check`, `cargo test --workspace` (20 tests
 passed), and `cargo check --workspace` pass; existing C-library warnings
 remain.
+
+2026-10-07 — Completed CLI1. Implemented the local Clap CLI with required
+input/output arguments, JSON/Markdown/image selection, opt-in parallel
+processing, directory rejection, contextual conversion failures, and help and
+project documentation. Added colocated CLI tests covering argument validation,
+single/multiple inputs, output generation, image output, parallel selection,
+and conversion errors. `cargo fmt --all -- --check`, `cargo test --workspace`,
+`cargo check --workspace`, and `cargo run -p opendataloder_cli -- --help` pass;
+existing C-library warnings remain.
