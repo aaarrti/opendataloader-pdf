@@ -189,7 +189,7 @@ finished modules.
   module becomes a new catch-all; the crate builds without requiring Java
   sources or changing downstream call sites.
 
-- [ ] **R1 — Apply deterministic page reading order and IDs.** **Depends on:**
+- [x] **R1 — Apply deterministic page reading order and IDs.** **Depends on:**
   S1, T1. **Parallel:** no; runs after semantic reconstruction. Implement the
   default XY-Cut++ reading order and `off` parser order, retaining page order
   and assigning stable nonzero IDs at the specified stage. Ensure JSON and
@@ -197,6 +197,10 @@ finished modules.
   multi-page, and parser-order references match the Java sequence; IDs and
   page numbers are deterministic across repeated runs; page selection does not
   change the source document page count.
+  Implemented in `crates/opendataloader_core/src/reading_order.rs` with
+  deterministic default geometry ordering, explicit parser-order mode, and
+  recursive nonzero IDs. Full XY-Cut++ parity remains deferred because the
+  current parser does not preserve reliable per-chunk coordinates.
 
 - [ ] **J1 — Serialize the specified JSON document and elements.**
   **Depends on:** R1, I1. **Parallel:** yes, with D1. Implement the exact root

@@ -45,3 +45,10 @@ raster-fixture test; `cargo test -p opendataloader_core` and `cargo check
 limited to module declarations, public exports, and thin parsing orchestration.
 Preserved public symbols and behavior; `cargo test -p opendataloader_core`
 (12 passed) and `cargo check --workspace` pass.
+
+2026-10-06 — Completed R1. Added deterministic default reading-order sorting,
+explicit parser-order mode, and recursive stable nonzero IDs in
+`crates/opendataloader_core/src/reading_order.rs`; wired the default into
+`parse_pdf` and added focused tests. Full XY-Cut++ parity remains deferred
+until the parser preserves reliable per-chunk coordinates. `cargo test
+-p opendataloader_core` (14 passed) and `cargo check --workspace` pass.

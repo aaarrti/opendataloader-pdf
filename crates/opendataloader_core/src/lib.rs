@@ -2,11 +2,13 @@ mod cleanup;
 mod images;
 mod model;
 mod parser;
+mod reading_order;
 mod semantics;
 
 pub use cleanup::normalize_page_chunks;
 pub use images::write_external_images;
 pub use model::*;
+pub use reading_order::ReadingOrder;
 pub use semantics::reconstruct_semantics;
 
 use std::path::{Path, PathBuf};
@@ -36,6 +38,7 @@ pub fn parse_pdf(path: &Path) -> Result<Document, ConversionError> {
         normalize_page_chunks(page);
     }
     reconstruct_semantics(&mut document);
+    reading_order::apply(&mut document, ReadingOrder::Xycut);
     Ok(document)
 }
 
