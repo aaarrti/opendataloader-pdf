@@ -173,7 +173,7 @@ finished modules.
   destinations; no reference points to an unwritten file; image-off writes no
   files; one image failure preserves unrelated extracted content.
 
-- [ ] **M2 — Split the Rust core into focused modules and files.** **Depends
+- [x] **M2 — Split the Rust core into focused modules and files.** **Depends
   on:** M1, P1, C1, S1, T1, I1. **Parallel:** no; finish before R1 so later
   work builds on the module boundaries. Move the current implementation out of
   the monolithic `crates/opendataloader_core/src/lib.rs` into logically

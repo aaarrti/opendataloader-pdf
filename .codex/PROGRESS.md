@@ -39,3 +39,9 @@ external-image writing from embedded PDF streams, JPEG passthrough support,
 stable relative references, and isolated per-image write failures. Added a
 raster-fixture test; `cargo test -p opendataloader_core` and `cargo check
 --workspace` pass.
+
+2026-10-06 — Completed M2. Verified the Rust core is split into focused
+`model`, `parser`, `cleanup`, `semantics`, and `images` modules, with `lib.rs`
+limited to module declarations, public exports, and thin parsing orchestration.
+Preserved public symbols and behavior; `cargo test -p opendataloader_core`
+(12 passed) and `cargo check --workspace` pass.
