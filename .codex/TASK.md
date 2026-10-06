@@ -397,7 +397,7 @@ finished modules.
   tests. Added `docs/abi.md`; workspace tests, checks, and a C compile/link
   smoke test pass.
 
-- [ ] **PY1 — Complete the Python file-writing package.** **Depends on:** ABI1.
+- [x] **PY1 — Complete the Python file-writing package.** **Depends on:** ABI1.
   **Parallel:** no. Complete `packages/opendataloader` using its existing
   Python API and `ctypes` library loader. Keep PDF parsing and conversion in
   the native library; do not add PyO3 or another conversion implementation.
@@ -415,3 +415,7 @@ finished modules.
   references, directory and invalid-format rejection, missing or malformed
   PDFs, output errors, and native library load/conversion errors; a built and
   installed package converts a committed PDF without Java or network access.
+  Implemented the ctypes file-writing wrapper with bundled `libodl.so`, the
+  documented `OPENDATALOADER_PDF_LIBRARY` override, JSON-default and
+  JSON/Markdown selection, path validation, native status/error mapping, and
+  installed-package smoke coverage.

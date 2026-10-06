@@ -127,3 +127,11 @@ Markdown, image, and parallel option bits, stable status codes, UTF-8 and
 pointer validation, thread-local last-error reporting, and panic containment.
 Added colocated ABI tests, `docs/abi.md`, and a C compile/link smoke test.
 `cargo test --workspace` and `cargo check --workspace` pass.
+
+2026-10-07 — Completed PY1. Implemented the Python ctypes file-writing API
+ over the native ABI with JSON as the default, JSON/Markdown selection,
+ single or multiple local paths, directory rejection, output-directory
+ creation, native load/status error mapping, and the documented
+ `OPENDATALOADER_PDF_LIBRARY` override. Bundled the release native library in
+ the wheel and verified source tests, Python compilation, wheel contents, and
+ installed-package conversion without Java or network access.

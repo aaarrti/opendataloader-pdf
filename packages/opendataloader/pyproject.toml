@@ -18,7 +18,7 @@ dev = [
 ]
 
 [tool.uv.build-backend]
-source-include = ["libodl.so"]
+source-include = ["src/opendataloader/libodl.so"]
 
 [tool.black]
 line-length = 100
