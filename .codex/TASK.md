@@ -256,7 +256,7 @@ finished modules.
   Implemented with one parse per PDF, shared JSON/Markdown/image state,
   contextual failures, and an oracle-backed raster end-to-end test.
 
-- [ ] **V1 — Close the first-round parity and traceability gaps.** **Depends
+- [x] **V1 — Close the first-round parity and traceability gaps.** **Depends
   on:** O1. **Parallel:** no. Walk the specification's first-round conformance
   checklist and map every required behavior to a Rust implementation location
   and a committed oracle fixture. Add missing Java-generated fixture cases
@@ -265,6 +265,10 @@ finished modules.
   in-scope checklist item has a named Rust module/function and a passing
   fixture-backed test, or a concrete documented blocker; `cargo test -p
   opendataloader_core` passes; no test requires Java or network access.
+  Implemented the checklist traceability table in
+  `samples/oracle/manifest.toml`, mapping every item to Rust entry points,
+  committed fixtures, focused tests, and explicit blockers for missing parser
+  evidence or deferred Base64 output.
 
 - [ ] **X1 — Make the completed Rust path self-contained and traceable.**
   **Depends on:** V1. **Parallel:** no. Remove accidental runtime, build, or

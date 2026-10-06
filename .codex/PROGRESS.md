@@ -79,3 +79,10 @@ files with contextual errors. Added an oracle-backed raster end-to-end test
 that verifies shared image references and unchanged source input. `cargo fmt
 --all`, `cargo check --workspace`, and `cargo test --workspace` pass; existing
 C-library warnings remain.
+
+2026-10-06 — Completed V1. Added checklist traceability to
+`samples/oracle/manifest.toml`, mapping all nine first-round conformance items
+to Rust entry points, committed fixtures, focused tests, and concrete parity
+blockers. Deferred gaps remain explicit for truncated/XMP fixtures, exact
+XY-Cut++ parity, unsupported semantic inputs, isolated image-failure fixtures,
+and Base64 images.

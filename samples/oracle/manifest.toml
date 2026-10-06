@@ -90,3 +90,74 @@ D1 = ["lorem", "multipage", "table", "raster"]
 O1 = ["lorem", "multipage", "raster"]
 V1 = ["lorem", "multipage", "table", "raster", "sanitization", "invalid-chars"]
 X1 = ["lorem", "multipage", "table", "raster"]
+
+# V1 traceability. Partial items keep their remaining parity gap explicit.
+[[checklist]]
+id = 1
+status = "partial"
+implementation = ["crates/opendataloader_core/src/parser.rs::parse_document", "crates/opendataloader_core/src/model.rs::ConversionError"]
+fixtures = ["invalid-input", "password-protected"]
+tests = ["parser::tests::parser_distinguishes_invalid_and_password_inputs"]
+blocker = "No committed truncated/corrupt-body PDF fixture yet; lopdf failures map to invalid input but lack oracle-backed coverage."
+
+[[checklist]]
+id = 2
+status = "partial"
+implementation = ["crates/opendataloader_core/src/parser.rs::read_metadata", "crates/opendataloader_core/src/parser.rs::xmp_metadata"]
+fixtures = ["lorem", "multipage"]
+tests = ["parser::tests::parser_reads_lorem_metadata_pages_and_text"]
+blocker = "Committed PDFs exercise PDF information metadata but not XMP-only fallback."
+
+[[checklist]]
+id = 3
+status = "pass"
+implementation = ["crates/opendataloader_core/src/parser.rs::parse_document", "crates/opendataloader_core/src/lib.rs::parse_pdf"]
+fixtures = ["lorem", "multipage", "raster"]
+tests = ["parser::tests::parser_preserves_raster_image_chunk_without_text"]
+
+[[checklist]]
+id = 4
+status = "partial"
+implementation = ["crates/opendataloader_core/src/reading_order.rs::apply", "crates/opendataloader_core/src/reading_order.rs::assign_ids"]
+fixtures = ["multipage"]
+tests = ["reading_order::tests::xycut_order_and_ids_are_deterministic", "reading_order::tests::off_preserves_parser_order_and_assigns_ids"]
+blocker = "The parser lacks reliable per-text coordinates, so exact XY-Cut++ multi-column parity is deferred."
+
+[[checklist]]
+id = 5
+status = "partial"
+implementation = ["crates/opendataloader_core/src/cleanup.rs::normalize_page_chunks", "crates/opendataloader_core/src/semantics.rs::reconstruct_semantics"]
+fixtures = ["sanitization", "invalid-chars", "lorem", "table"]
+tests = ["cleanup::tests::parser_applies_fixture_text_cleanup", "semantics::tests::reconstructs_heading_paragraph_and_unordered_list", "semantics::tests::reconstructs_border_table_rows_cells_and_headers"]
+blocker = "Nested/cross-page lists, captions, repeated headers/footers, and several Java filters need parser metadata or geometry not preserved by the current boundary."
+
+[[checklist]]
+id = 6
+status = "partial"
+implementation = ["crates/opendataloader_core/src/json.rs::serialize_document", "crates/opendataloader_core/src/json.rs::element_value"]
+fixtures = ["lorem", "multipage", "table", "raster"]
+tests = ["json::tests::serializes_root_nulls_and_image_fixture_shape", "json::tests::serializes_nested_table_rows_and_cells"]
+blocker = "Exact Java comparisons for every semantic kind are not fixture-backed; formula, caption, and TOC inputs are absent."
+
+[[checklist]]
+id = 7
+status = "partial"
+implementation = ["crates/opendataloader_core/src/markdown.rs::serialize_markdown", "crates/opendataloader_core/src/markdown.rs::render"]
+fixtures = ["lorem", "multipage", "table", "raster", "sanitization"]
+tests = ["markdown::tests::renders_supported_elements_with_exact_separators", "markdown::tests::renders_lists_tables_and_sanitized_images"]
+blocker = "Focused exact-byte tests exist, but the parser cannot produce all Java semantic cases needed for complete fixture parity."
+
+[[checklist]]
+id = 8
+status = "partial"
+implementation = ["crates/opendataloader_core/src/images.rs::write_external_images", "crates/opendataloader_core/src/lib.rs::convert"]
+fixtures = ["raster"]
+tests = ["images::tests::external_images_write_png_and_reference_written_file", "tests::convert_writes_requested_outputs_from_one_document"]
+blocker = "The success path is fixture-backed; isolated post-directory image-write failure lacks a deterministic committed fixture."
+
+[[checklist]]
+id = 9
+status = "blocked"
+implementation = ["crates/opendataloader_core/src/model.rs::ImageReference", "crates/opendataloader_core/src/json.rs::element_value"]
+fixtures = ["raster"]
+blocker = "Base64 image output is explicitly deferred; the current path emits no data URI and supports external references only."
