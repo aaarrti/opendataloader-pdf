@@ -33,3 +33,9 @@ children, and line-art omission, plus a focused geometry-backed test. Full
 table-fixture parity remains deferred because the current parser does not yet
 preserve reliable text coordinates or line segments for the committed PDF.
 `cargo test -p opendataloader_core` and `cargo check --workspace` pass.
+
+2026-10-06 — Completed I1. Added semantic image elements, deterministic PNG
+external-image writing from embedded PDF streams, JPEG passthrough support,
+stable relative references, and isolated per-image write failures. Added a
+raster-fixture test; `cargo test -p opendataloader_core` and `cargo check
+--workspace` pass.

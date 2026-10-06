@@ -160,7 +160,7 @@ finished modules.
   `m`/`l` operations to points, so full fixture parity, spans, and parser-
   derived table text remain deferred until those coordinates are exposed.
 
-- [ ] **I1 — Extract external image files and assign stable references.**
+- [x] **I1 — Extract external image files and assign stable references.**
   **Depends on:** M1, P1. **Parallel:** yes, with C1, S1, and T1 once the image
   element contract is stable. Implement document-local one-based image
   numbering in page and final element order, use an available source image or
