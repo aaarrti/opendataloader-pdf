@@ -108,7 +108,7 @@ finished modules.
   model values derived from the committed Java fixture manifest. Implemented
   in `crates/opendataloader_core/src/lib.rs` with focused model and error tests.
 
-- [ ] **P1 — Parse local PDFs into document metadata and page chunks.**
+- [x] **P1 — Parse local PDFs into document metadata and page chunks.**
   **Depends on:** M1, F1. **Parallel:** no; this is the parser foundation.
   Implement local file opening, PDF signature/parser validation, page count,
   PDF information and XMP metadata fallback, page geometry, and the primitive
