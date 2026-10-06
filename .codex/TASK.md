@@ -173,6 +173,22 @@ finished modules.
   destinations; no reference points to an unwritten file; image-off writes no
   files; one image failure preserves unrelated extracted content.
 
+- [ ] **M2 — Split the Rust core into focused modules and files.** **Depends
+  on:** M1, P1, C1, S1, T1, I1. **Parallel:** no; finish before R1 so later
+  work builds on the module boundaries. Move the current implementation out of
+  the monolithic `crates/opendataloader_core/src/lib.rs` into logically
+  separated modules for the data model, PDF parsing, cleanup/geometry,
+  semantic reconstruction, and image output. Keep each module self-contained,
+  focused on one responsibility, and expose only the narrow interfaces needed
+  by other modules. Leave `lib.rs` as module declarations, the crate's public
+  exports, and any thin orchestration. Preserve the existing behavior and
+  public symbols; do not add features or redesign algorithms in this refactor.
+  **Acceptance:** all existing `opendataloader_core` tests pass unchanged;
+  Java-generated fixture comparisons remain byte/structure equivalent; each
+  major implementation responsibility lives in its own Rust module/file; no
+  module becomes a new catch-all; the crate builds without requiring Java
+  sources or changing downstream call sites.
+
 - [ ] **R1 — Apply deterministic page reading order and IDs.** **Depends on:**
   S1, T1. **Parallel:** no; runs after semantic reconstruction. Implement the
   default XY-Cut++ reading order and `off` parser order, retaining page order

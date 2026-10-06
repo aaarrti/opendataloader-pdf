@@ -21,6 +21,9 @@
 
 ### Rust conventions
 
+- Do not place an entire Rust implementation in one file. Split code into
+  logically grouped modules and files with one clear responsibility each, and
+  keep each module self-contained with a narrow interface to other modules.
 - Use `tracing` events and spans for Rust logging and instrumentation. Initialize
   `tracing_subscriber` at the executable or application entry point; library
   crates emit tracing events but do not install a global subscriber.
