@@ -366,7 +366,7 @@ finished modules.
   directory rejection, nonzero failures, help documentation, colocated CLI
   tests, and `docs/cli.md` describing outputs and validation.
 
-- [ ] **ABI1 — Define and implement the local batch C ABI.** **Depends on:**
+- [x] **ABI1 — Define and implement the local batch C ABI.** **Depends on:**
   B1, C2, C3, C4. **Parallel:** yes, with CLI1 after the core options and batch
   conversion tasks are complete. Complete these actions in
   `crates/opendataloader_clib`:
@@ -391,6 +391,11 @@ finished modules.
   image output, and parallel batches; errors return stable codes and useful
   last-error text; generated JSON, Markdown, and image files match committed
   references; Rust unit tests are colocated with their ABI functions.
+  Implemented the file-writing batch ABI with a generated cbindgen header,
+  stable option/status constants, UTF-8 and pointer validation, thread-local
+  last-error access, panic containment, core option mapping, and colocated
+  tests. Added `docs/abi.md`; workspace tests, checks, and a C compile/link
+  smoke test pass.
 
 - [ ] **PY1 — Complete the Python file-writing package.** **Depends on:** ABI1.
   **Parallel:** no. Complete `packages/opendataloader` using its existing

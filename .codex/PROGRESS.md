@@ -120,3 +120,10 @@ single/multiple inputs, output generation, image output, parallel selection,
 and conversion errors. `cargo fmt --all -- --check`, `cargo test --workspace`,
 `cargo check --workspace`, and `cargo run -p opendataloder_cli -- --help` pass;
 existing C-library warnings remain.
+
+2026-10-07 — Completed ABI1. Implemented the local batch C ABI over the core
+conversion options, including a generated cbindgen header, stable JSON,
+Markdown, image, and parallel option bits, stable status codes, UTF-8 and
+pointer validation, thread-local last-error reporting, and panic containment.
+Added colocated ABI tests, `docs/abi.md`, and a C compile/link smoke test.
+`cargo test --workspace` and `cargo check --workspace` pass.
