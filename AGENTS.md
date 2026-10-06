@@ -24,6 +24,9 @@
 - Do not place an entire Rust implementation in one file. Split code into
   logically grouped modules and files with one clear responsibility each, and
   keep each module self-contained with a narrow interface to other modules.
+- Keep each Rust unit test in the same source file as the function or type it
+  tests, usually in that module's inline `#[cfg(test)] mod tests`; do not gather
+  unit tests in a separate shared test file.
 - Use `tracing` events and spans for Rust logging and instrumentation. Initialize
   `tracing_subscriber` at the executable or application entry point; library
   crates emit tracing events but do not install a global subscriber.
