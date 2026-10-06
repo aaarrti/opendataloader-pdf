@@ -94,9 +94,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Run the opendataloader-pdf CLI using the bundled JAR."
     )
-    parser.add_argument(
-        "input_path", nargs="+", help="Path to the input PDF file or directory."
-    )
+    parser.add_argument("input_path", nargs="+", help="Path to the input PDF file or directory.")
 
     # Register CLI options from auto-generated module
     add_options_to_parser(parser)

@@ -48,15 +48,17 @@ def chunk_by_element(doc: dict) -> list[dict]:
     chunks = []
     for element in doc.get("kids", []):
         if element.get("type") in ("paragraph", "heading", "list"):
-            chunks.append({
-                "text": element.get("content", ""),
-                "metadata": {
-                    "type": element["type"],
-                    "page": element.get("page number"),
-                    "bbox": element.get("bounding box"),
-                    "source": doc.get("file name"),
+            chunks.append(
+                {
+                    "text": element.get("content", ""),
+                    "metadata": {
+                        "type": element["type"],
+                        "page": element.get("page number"),
+                        "bbox": element.get("bounding box"),
+                        "source": doc.get("file name"),
+                    },
                 }
-            })
+            )
     return chunks
 
 
@@ -78,14 +80,16 @@ def chunk_by_section(doc: dict) -> list[dict]:
         if element_type == "heading":
             # Save previous section
             if current_content:
-                chunks.append({
-                    "text": "\n".join(current_content),
-                    "metadata": {
-                        "heading": current_heading,
-                        "page": current_start_page,
-                        "source": doc.get("file name"),
+                chunks.append(
+                    {
+                        "text": "\n".join(current_content),
+                        "metadata": {
+                            "heading": current_heading,
+                            "page": current_start_page,
+                            "source": doc.get("file name"),
+                        },
                     }
-                })
+                )
             current_heading = element.get("content", "")
             current_content = [current_heading]
             current_start_page = element.get("page number")
@@ -96,14 +100,16 @@ def chunk_by_section(doc: dict) -> list[dict]:
 
     # Save the last section
     if current_content:
-        chunks.append({
-            "text": "\n".join(current_content),
-            "metadata": {
-                "heading": current_heading,
-                "page": current_start_page,
-                "source": doc.get("file name"),
+        chunks.append(
+            {
+                "text": "\n".join(current_content),
+                "metadata": {
+                    "heading": current_heading,
+                    "page": current_start_page,
+                    "source": doc.get("file name"),
+                },
             }
-        })
+        )
 
     return chunks
 
@@ -129,25 +135,29 @@ def chunk_with_min_size(doc: dict, min_chars: int = 200) -> list[dict]:
                 buffer_pages.append(page)
 
             if len(buffer_text) >= min_chars:
-                chunks.append({
-                    "text": buffer_text.strip(),
-                    "metadata": {
-                        "pages": buffer_pages.copy(),
-                        "source": doc.get("file name"),
+                chunks.append(
+                    {
+                        "text": buffer_text.strip(),
+                        "metadata": {
+                            "pages": buffer_pages.copy(),
+                            "source": doc.get("file name"),
+                        },
                     }
-                })
+                )
                 buffer_text = ""
                 buffer_pages = []
 
     # Save remaining buffer
     if buffer_text.strip():
-        chunks.append({
-            "text": buffer_text.strip(),
-            "metadata": {
-                "pages": buffer_pages,
-                "source": doc.get("file name"),
+        chunks.append(
+            {
+                "text": buffer_text.strip(),
+                "metadata": {
+                    "pages": buffer_pages,
+                    "source": doc.get("file name"),
+                },
             }
-        })
+        )
 
     return chunks
 

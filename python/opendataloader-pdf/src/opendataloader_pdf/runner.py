@@ -1,6 +1,7 @@
 """
 Low-level JAR runner for opendataloader-pdf.
 """
+
 import subprocess
 import sys
 import importlib.resources as resources
@@ -45,9 +46,7 @@ def run_jar(args: List[str], quiet: bool = False) -> str:
                 )
                 if result.stdout:
                     if hasattr(sys.stdout, "buffer"):
-                        sys.stdout.buffer.write(
-                            result.stdout.encode("utf-8", errors="replace")
-                        )
+                        sys.stdout.buffer.write(result.stdout.encode("utf-8", errors="replace"))
                         sys.stdout.buffer.flush()
                     else:
                         sys.stdout.write(result.stdout)

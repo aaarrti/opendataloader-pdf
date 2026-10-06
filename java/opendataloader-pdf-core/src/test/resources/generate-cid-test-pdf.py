@@ -22,6 +22,7 @@ Output defaults to cid-font-no-tounicode.pdf in the same directory.
 Requirements:
     pip install reportlab
 """
+
 import os
 import re
 import struct
@@ -45,7 +46,7 @@ def find_ttf_font():
 
 def read_ttf_tables(font_path):
     """Read TrueType font and extract key tables for embedding."""
-    with open(font_path, 'rb') as f:
+    with open(font_path, "rb") as f:
         data = f.read()
     return data
 
@@ -60,42 +61,44 @@ def build_pdf_with_real_font(output_path, font_path):
 
     # Parse the TTF to get unitsPerEm and some metrics
     # Read offset table
-    sfVersion, numTables = struct.unpack('>IH', font_data[0:6])
+    sfVersion, numTables = struct.unpack(">IH", font_data[0:6])
 
     tables = {}
     for i in range(numTables):
         offset = 12 + i * 16
-        tag = font_data[offset:offset+4].decode('ascii', errors='replace')
-        checksum, tbl_offset, tbl_length = struct.unpack('>III', font_data[offset+4:offset+16])
+        tag = font_data[offset : offset + 4].decode("ascii", errors="replace")
+        checksum, tbl_offset, tbl_length = struct.unpack(
+            ">III", font_data[offset + 4 : offset + 16]
+        )
         tables[tag] = (tbl_offset, tbl_length)
 
     # Read head table for unitsPerEm
-    if 'head' in tables:
-        ho, hl = tables['head']
-        head_data = font_data[ho:ho+hl]
-        units_per_em = struct.unpack('>H', head_data[18:20])[0]
-        x_min, y_min, x_max, y_max = struct.unpack('>hhhh', head_data[36:44])
+    if "head" in tables:
+        ho, hl = tables["head"]
+        head_data = font_data[ho : ho + hl]
+        units_per_em = struct.unpack(">H", head_data[18:20])[0]
+        x_min, y_min, x_max, y_max = struct.unpack(">hhhh", head_data[36:44])
     else:
         units_per_em = 1000
         x_min, y_min, x_max, y_max = 0, -200, 1000, 800
 
     # Read hhea for ascent/descent
-    if 'hhea' in tables:
-        ho, hl = tables['hhea']
-        hhea_data = font_data[ho:ho+hl]
-        ascent = struct.unpack('>h', hhea_data[4:6])[0]
-        descent = struct.unpack('>h', hhea_data[6:8])[0]
-        num_hmtx = struct.unpack('>H', hhea_data[34:36])[0]
+    if "hhea" in tables:
+        ho, hl = tables["hhea"]
+        hhea_data = font_data[ho : ho + hl]
+        ascent = struct.unpack(">h", hhea_data[4:6])[0]
+        descent = struct.unpack(">h", hhea_data[6:8])[0]
+        num_hmtx = struct.unpack(">H", hhea_data[34:36])[0]
     else:
         ascent, descent, num_hmtx = 800, -200, 0
 
     # Read hmtx for glyph widths
     widths = []
-    if 'hmtx' in tables:
-        ho, hl = tables['hmtx']
-        hmtx_data = font_data[ho:ho+hl]
+    if "hmtx" in tables:
+        ho, hl = tables["hmtx"]
+        hmtx_data = font_data[ho : ho + hl]
         for i in range(min(num_hmtx, 256)):
-            aw = struct.unpack('>H', hmtx_data[i*4:i*4+2])[0]
+            aw = struct.unpack(">H", hmtx_data[i * 4 : i * 4 + 2])[0]
             widths.append(aw)
 
     # Scale factor to convert from font units to 1000-unit space
@@ -111,40 +114,59 @@ def build_pdf_with_real_font(output_path, font_path):
 
     # Read cmap to find glyph IDs for ASCII characters
     glyph_ids = {}
-    if 'cmap' in tables:
-        co, cl = tables['cmap']
-        cmap_data = font_data[co:co+cl]
-        num_subtables = struct.unpack('>H', cmap_data[2:4])[0]
+    if "cmap" in tables:
+        co, cl = tables["cmap"]
+        cmap_data = font_data[co : co + cl]
+        num_subtables = struct.unpack(">H", cmap_data[2:4])[0]
 
         for i in range(num_subtables):
             so = 4 + i * 8
-            platform_id, encoding_id, subtable_offset = struct.unpack('>HHI', cmap_data[so:so+8])
+            platform_id, encoding_id, subtable_offset = struct.unpack(
+                ">HHI", cmap_data[so : so + 8]
+            )
 
             # Prefer Windows Unicode BMP (3,1) or Unicode (0,3)
             if (platform_id == 3 and encoding_id == 1) or (platform_id == 0):
                 st_data = cmap_data[subtable_offset:]
-                fmt = struct.unpack('>H', st_data[0:2])[0]
+                fmt = struct.unpack(">H", st_data[0:2])[0]
 
                 if fmt == 4:
-                    seg_count = struct.unpack('>H', st_data[6:8])[0] // 2
+                    seg_count = struct.unpack(">H", st_data[6:8])[0] // 2
                     end_codes = []
                     for j in range(seg_count):
-                        end_codes.append(struct.unpack('>H', st_data[14 + j*2:16 + j*2])[0])
+                        end_codes.append(struct.unpack(">H", st_data[14 + j * 2 : 16 + j * 2])[0])
 
                     start_offset = 14 + seg_count * 2 + 2
                     start_codes = []
                     for j in range(seg_count):
-                        start_codes.append(struct.unpack('>H', st_data[start_offset + j*2:start_offset + 2 + j*2])[0])
+                        start_codes.append(
+                            struct.unpack(
+                                ">H",
+                                st_data[start_offset + j * 2 : start_offset + 2 + j * 2],
+                            )[0]
+                        )
 
                     delta_offset = start_offset + seg_count * 2
                     deltas = []
                     for j in range(seg_count):
-                        deltas.append(struct.unpack('>h', st_data[delta_offset + j*2:delta_offset + 2 + j*2])[0])
+                        deltas.append(
+                            struct.unpack(
+                                ">h",
+                                st_data[delta_offset + j * 2 : delta_offset + 2 + j * 2],
+                            )[0]
+                        )
 
                     range_offset_start = delta_offset + seg_count * 2
                     range_offsets = []
                     for j in range(seg_count):
-                        range_offsets.append(struct.unpack('>H', st_data[range_offset_start + j*2:range_offset_start + 2 + j*2])[0])
+                        range_offsets.append(
+                            struct.unpack(
+                                ">H",
+                                st_data[
+                                    range_offset_start + j * 2 : range_offset_start + 2 + j * 2
+                                ],
+                            )[0]
+                        )
 
                     for j in range(seg_count):
                         for code in range(start_codes[j], end_codes[j] + 1):
@@ -152,8 +174,13 @@ def build_pdf_with_real_font(output_path, font_path):
                                 if range_offsets[j] == 0:
                                     gid = (code + deltas[j]) & 0xFFFF
                                 else:
-                                    idx = range_offset_start + j * 2 + range_offsets[j] + (code - start_codes[j]) * 2
-                                    gid = struct.unpack('>H', st_data[idx:idx+2])[0]
+                                    idx = (
+                                        range_offset_start
+                                        + j * 2
+                                        + range_offsets[j]
+                                        + (code - start_codes[j]) * 2
+                                    )
+                                    gid = struct.unpack(">H", st_data[idx : idx + 2])[0]
                                     if gid != 0:
                                         gid = (gid + deltas[j]) & 0xFFFF
                                 glyph_ids[code] = gid
@@ -303,7 +330,7 @@ ET""".encode()
     pdf += f"{xref_offset}\n".encode()
     pdf += b"%%EOF\n"
 
-    with open(output_path, 'wb') as f:
+    with open(output_path, "wb") as f:
         f.write(pdf)
 
     return len(pdf), len(used_gids)

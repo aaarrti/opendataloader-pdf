@@ -87,8 +87,7 @@ def convert_pdf(
     }
     if format not in ext_map:
         raise ValueError(
-            f"Unsupported format: {format!r}. "
-            f"Supported formats: {', '.join(ext_map)}"
+            f"Unsupported format: {format!r}. " f"Supported formats: {', '.join(ext_map)}"
         )
     ext = ext_map[format]
 
@@ -158,9 +157,7 @@ def convert_pdf(
         if not output_file.is_file():
             files = [f for f in Path(tmp_dir).iterdir() if f.is_file()]
             if not files:
-                raise RuntimeError(
-                    "Conversion completed but no output file was generated."
-                )
+                raise RuntimeError("Conversion completed but no output file was generated.")
             matching_ext = sorted(f for f in files if f.suffix == ext)
             if not matching_ext:
                 raise RuntimeError(

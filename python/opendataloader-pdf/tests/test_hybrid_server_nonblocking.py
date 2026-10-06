@@ -41,16 +41,19 @@ def mock_docling():
     mock_conversion_status = MagicMock()
     mock_conversion_status.PARTIAL_SUCCESS = "partial_success"
 
-    with patch.dict("sys.modules", {
-        "docling": MagicMock(),
-        "docling.datamodel.base_models": MagicMock(
-            InputFormat=MagicMock(PDF="pdf"),
-            ConversionStatus=mock_conversion_status,
-        ),
-        "docling.datamodel.pipeline_options": MagicMock(),
-        "docling.document_converter": MagicMock(),
-        "uvicorn": MagicMock(),
-    }):
+    with patch.dict(
+        "sys.modules",
+        {
+            "docling": MagicMock(),
+            "docling.datamodel.base_models": MagicMock(
+                InputFormat=MagicMock(PDF="pdf"),
+                ConversionStatus=mock_conversion_status,
+            ),
+            "docling.datamodel.pipeline_options": MagicMock(),
+            "docling.document_converter": MagicMock(),
+            "uvicorn": MagicMock(),
+        },
+    ):
         yield mock_converter
 
 

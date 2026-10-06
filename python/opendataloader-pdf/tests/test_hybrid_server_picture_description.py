@@ -37,9 +37,7 @@ def _capture_pipeline_options(**kwargs):
         captured["pipeline_options"] = pipeline_options
         return object()
 
-    with patch(
-        "docling.document_converter.DocumentConverter"
-    ) as mock_dc, patch(
+    with patch("docling.document_converter.DocumentConverter") as mock_dc, patch(
         "docling.document_converter.PdfFormatOption", side_effect=fake_pdf_format_option
     ):
         mock_dc.return_value = object()
@@ -70,10 +68,7 @@ def test_default_prompt_is_preserved_when_user_omits_flag():
     """
     opts = _capture_pipeline_options(enrich_picture_description=True)
     assert opts.picture_description_options is not None
-    assert (
-        opts.picture_description_options.prompt
-        == "Describe this image in a few sentences."
-    )
+    assert opts.picture_description_options.prompt == "Describe this image in a few sentences."
 
 
 @pytest.mark.parametrize("blank", ["", "   ", "\t\n"])
@@ -88,10 +83,7 @@ def test_blank_prompt_falls_back_to_default(blank):
         picture_description_prompt=blank,
     )
     assert opts.picture_description_options is not None
-    assert (
-        opts.picture_description_options.prompt
-        == "Describe this image in a few sentences."
-    )
+    assert opts.picture_description_options.prompt == "Describe this image in a few sentences."
 
 
 def test_prompt_ignored_when_enrichment_disabled():
@@ -246,9 +238,7 @@ def _picture(description=None, in_meta=False):
 
 
 def test_counts_pictures_with_and_without_a_description():
-    json_content = {
-        "pictures": [_picture("a chart"), _picture(), _picture("a photo")]
-    }
+    json_content = {"pictures": [_picture("a chart"), _picture(), _picture("a photo")]}
     assert hybrid_server._picture_description_counts(json_content) == (3, 2)
 
 
@@ -323,9 +313,7 @@ def _post_pdf(monkeypatch, json_content, **app_kwargs):
         status = ConversionStatus.SUCCESS
         errors = []
         input = type("_Input", (), {"page_count": 1})()
-        document = type(
-            "_Doc", (), {"export_to_dict": lambda self: json_content}
-        )()
+        document = type("_Doc", (), {"export_to_dict": lambda self: json_content})()
 
     class _Converter:
         def convert(self, path, **kwargs):
@@ -345,9 +333,7 @@ def _post_pdf(monkeypatch, json_content, **app_kwargs):
 def test_convert_endpoint_logs_the_tally(monkeypatch, caplog):
     json_content = {"pictures": [_picture("a chart"), _picture()], "pages": {"1": {}}}
     with caplog.at_level("INFO", logger=hybrid_server.logger.name):
-        response = _post_pdf(
-            monkeypatch, json_content, enrich_picture_description=True
-        )
+        response = _post_pdf(monkeypatch, json_content, enrich_picture_description=True)
     assert response.status_code == 200
     assert "picture_description pictures=2 described=1" in caplog.text
 
@@ -364,14 +350,13 @@ def test_a_failing_tally_does_not_fail_the_conversion(monkeypatch, caplog):
     """The tally reads a shape docling owns; a change there must cost a log
     line, not a converted document.
     """
+
     def boom(*args, **kwargs):
         raise TypeError("shape changed")
 
     monkeypatch.setattr(hybrid_server, "_picture_description_counts", boom)
     json_content = {"pictures": [_picture("a chart")], "pages": {"1": {}}}
     with caplog.at_level("WARNING", logger=hybrid_server.logger.name):
-        response = _post_pdf(
-            monkeypatch, json_content, enrich_picture_description=True
-        )
+        response = _post_pdf(monkeypatch, json_content, enrich_picture_description=True)
     assert response.status_code == 200
     assert "picture_description_tally_failed" in caplog.text

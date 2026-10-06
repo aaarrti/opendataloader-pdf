@@ -13,7 +13,6 @@ import pytest
 
 from opendataloader_pdf import hybrid_server
 
-
 # Every logger `configure_logging` touches, so the fixture can put each one
 # back rather than leaving a level set for whatever runs next.
 _TOUCHED_LOGGERS = (
@@ -331,11 +330,7 @@ def test_repeat_calls_replace_only_our_own_handler():
     hybrid_server.configure_logging("debug")
     hybrid_server.configure_logging("info")
 
-    ours = [
-        h
-        for h in root.handlers
-        if getattr(h, "name", None) == hybrid_server._CONSOLE_HANDLER
-    ]
+    ours = [h for h in root.handlers if getattr(h, "name", None) == hybrid_server._CONSOLE_HANDLER]
     assert len(ours) == 1, f"expected exactly one console handler, got {len(ours)}"
     assert host in root.handlers
 
@@ -502,9 +497,7 @@ def test_escaped_output_survives_a_legacy_console_encoding():
     """`logging` drops a record it cannot encode, so a replacement character
     the console cannot write would make a suspicious upload go unlogged --
     the sanitizing turning into a way to hide. Korean Windows is cp949."""
-    rendered = hybrid_server._pairs(
-        file=hybrid_server._safe_log_name("report\u200b\x1b[31m.pdf")
-    )
+    rendered = hybrid_server._pairs(file=hybrid_server._safe_log_name("report\u200b\x1b[31m.pdf"))
     for encoding in ("cp949", "cp1252", "ascii"):
         rendered.encode(encoding)  # raises if a record would be dropped
 
@@ -591,7 +584,7 @@ def test_traceback_prefix_survives_another_handler_formatting_first():
     ours.addFilter(hybrid_server._RequestIdFilter())
 
     logger = logging.getLogger("test.exc_cache")
-    logger.addHandler(host)   # formats first, populating record.exc_text
+    logger.addHandler(host)  # formats first, populating record.exc_text
     logger.addHandler(ours)
     logger.setLevel(logging.ERROR)
     try:
@@ -614,6 +607,5 @@ def test_traceback_prefix_survives_another_handler_formatting_first():
     host_lines = host_stream.getvalue().splitlines()
     assert any(line.startswith("Traceback") for line in host_lines)
     assert not any(
-        line.startswith(hybrid_server._IndentTracebacks._CONTINUATION)
-        for line in host_lines
+        line.startswith(hybrid_server._IndentTracebacks._CONTINUATION) for line in host_lines
     )

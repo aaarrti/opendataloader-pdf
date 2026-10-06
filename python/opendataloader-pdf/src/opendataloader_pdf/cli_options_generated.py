@@ -4,8 +4,8 @@
 """
 CLI option definitions for opendataloader-pdf.
 """
-from typing import Any, Dict, List
 
+from typing import Any, Dict, List
 
 # Option metadata list
 CLI_OPTIONS: List[Dict[str, Any]] = [
@@ -178,7 +178,7 @@ CLI_OPTIONS: List[Dict[str, Any]] = [
         "type": "string",
         "required": False,
         "default": None,
-        "description": "Pages to extract (e.g., \"1,3,5-7\"). Default: all pages",
+        "description": 'Pages to extract (e.g., "1,3,5-7"). Default: all pages',
     },
     {
         "name": "include-header-footer",
@@ -205,7 +205,7 @@ CLI_OPTIONS: List[Dict[str, Any]] = [
         "type": "string",
         "required": False,
         "default": "off",
-        "description": "Hybrid backend (requires a running server). Quick start: pip install \"opendataloader-pdf[hybrid]\" && opendataloader-pdf-hybrid --port 5002. For remote servers use --hybrid-url. Values: off (default), docling-fast. Ignored when --use-struct-tree is set on a tagged PDF (structure tree takes precedence)",
+        "description": 'Hybrid backend (requires a running server). Quick start: pip install "opendataloader-pdf[hybrid]" && opendataloader-pdf-hybrid --port 5002. For remote servers use --hybrid-url. Values: off (default), docling-fast. Ignored when --use-struct-tree is set on a tagged PDF (structure tree takes precedence)',
     },
     {
         "name": "hybrid-mode",

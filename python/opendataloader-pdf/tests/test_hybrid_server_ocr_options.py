@@ -20,8 +20,8 @@ import pytest
 
 from opendataloader_pdf import hybrid_server
 
-
 # ---------- create_converter: factory delegation ----------
+
 
 def _capture_pipeline_options(**kwargs):
     """Call create_converter while mocking the docling document_converter so we
@@ -33,9 +33,7 @@ def _capture_pipeline_options(**kwargs):
         captured["pipeline_options"] = pipeline_options
         return object()
 
-    with patch(
-        "docling.document_converter.DocumentConverter"
-    ) as mock_dc, patch(
+    with patch("docling.document_converter.DocumentConverter") as mock_dc, patch(
         "docling.document_converter.PdfFormatOption", side_effect=fake_pdf_format_option
     ):
         mock_dc.return_value = object()
@@ -77,17 +75,13 @@ def test_ocr_engine_rapidocr_yields_rapidocr_options():
 
 def test_force_full_page_ocr_propagates_to_engine_options():
     """`force_full_page_ocr=True` flows to the engine's options instance."""
-    opts = _capture_pipeline_options(
-        ocr_engine="rapidocr", force_full_page_ocr=True
-    )
+    opts = _capture_pipeline_options(ocr_engine="rapidocr", force_full_page_ocr=True)
     assert opts.ocr_options.force_full_page_ocr is True
 
 
 def test_ocr_lang_overrides_engine_default():
     """A non-empty ocr_lang list replaces the engine's default lang."""
-    opts = _capture_pipeline_options(
-        ocr_engine="tesseract", ocr_lang=["mal", "eng"]
-    )
+    opts = _capture_pipeline_options(ocr_engine="tesseract", ocr_lang=["mal", "eng"])
     assert opts.ocr_options.lang == ["mal", "eng"]
 
 
@@ -148,6 +142,7 @@ def test_create_converter_rejects_denylisted_engine():
 
 # ---------- argparse: --no-ocr / --force-ocr / --ocr-engine / --psm ----------
 
+
 def _build_parser_subset():
     """Reconstruct the OCR-relevant argparse subset from main().
 
@@ -166,9 +161,7 @@ def _build_parser_subset():
         set(get_ocr_factory(allow_external_plugins=False).registered_kind)
         - hybrid_server._OCR_ENGINE_DENYLIST
     )
-    parser.add_argument(
-        "--ocr-engine", default="easyocr", choices=choices
-    )
+    parser.add_argument("--ocr-engine", default="easyocr", choices=choices)
     parser.add_argument("--psm", type=int, default=None)
     parser.add_argument("--ocr-lang", default=None)
     return parser
@@ -217,13 +210,12 @@ def test_argparse_psm_accepted_as_integer():
     integer through unchanged. Out-of-range values surface from docling /
     Tesseract at conversion time, not here.
     """
-    args = _build_parser_subset().parse_args(
-        ["--ocr-engine", "tesseract", "--psm", "6"]
-    )
+    args = _build_parser_subset().parse_args(["--ocr-engine", "tesseract", "--psm", "6"])
     assert args.psm == 6
 
 
 # ---------- _check_ocr_engine_available ----------
+
 
 def test_engine_check_easyocr_always_ok():
     """easyocr ships with the `[hybrid]` extra; check is a no-op."""
@@ -291,6 +283,7 @@ def test_engine_check_rapidocr_missing_package():
 
 def test_engine_check_rapidocr_missing_onnxruntime():
     """`rapidocr` installed without `onnxruntime` fails with a backend-specific hint."""
+
     # Return a truthy spec for rapidocr, None for onnxruntime, None for anything else.
     def fake_find_spec(name):
         return object() if name == "rapidocr" else None
@@ -313,9 +306,7 @@ def test_engine_check_ocrmac_off_macos():
 
 def test_engine_check_ocrmac_on_macos_missing_package():
     """`ocrmac` on macOS without the `ocrmac` Python package fails with install hint."""
-    with patch("sys.platform", "darwin"), patch(
-        "importlib.util.find_spec", return_value=None
-    ):
+    with patch("sys.platform", "darwin"), patch("importlib.util.find_spec", return_value=None):
         ok, msg = hybrid_server._check_ocr_engine_available("ocrmac")
     assert ok is False
     assert "ocrmac" in msg
@@ -325,6 +316,7 @@ def test_engine_check_ocrmac_on_macos_missing_package():
 
 
 # ---------- --no-ocr ignored-flag warning ----------
+
 
 def _run_main_to_warning(argv, monkeypatch, caplog):
     """Drive `main()` far enough to capture the --no-ocr warning, then short-circuit.
@@ -351,9 +343,7 @@ def _run_main_to_warning(argv, monkeypatch, caplog):
 
 def test_no_ocr_warns_when_engine_explicitly_set(monkeypatch, caplog):
     """`--no-ocr --ocr-engine tesseract` warns that --ocr-engine has no effect."""
-    _run_main_to_warning(
-        ["--no-ocr", "--ocr-engine", "tesseract"], monkeypatch, caplog
-    )
+    _run_main_to_warning(["--no-ocr", "--ocr-engine", "tesseract"], monkeypatch, caplog)
     warnings = [r.message for r in caplog.records if r.levelname == "WARNING"]
     assert any("--ocr-engine tesseract" in w for w in warnings), warnings
 
@@ -364,9 +354,7 @@ def test_no_ocr_warns_when_engine_explicitly_set_to_easyocr(monkeypatch, caplog)
     argparse cannot distinguish "user typed easyocr" from "default was used", so
     main() inspects argv directly. This regression test locks the path in.
     """
-    _run_main_to_warning(
-        ["--no-ocr", "--ocr-engine", "easyocr"], monkeypatch, caplog
-    )
+    _run_main_to_warning(["--no-ocr", "--ocr-engine", "easyocr"], monkeypatch, caplog)
     warnings = [r.message for r in caplog.records if r.levelname == "WARNING"]
     assert any("--ocr-engine easyocr" in w for w in warnings), warnings
 
@@ -397,20 +385,17 @@ def test_no_ocr_alone_emits_no_warning(monkeypatch, caplog):
     """`--no-ocr` on its own does not warn — there are no inert flags to call out."""
     _run_main_to_warning(["--no-ocr"], monkeypatch, caplog)
     warnings = [
-        r.message
-        for r in caplog.records
-        if r.levelname == "WARNING" and "no effect" in r.message
+        r.message for r in caplog.records if r.levelname == "WARNING" and "no effect" in r.message
     ]
     assert warnings == []
 
 
 # ---------- main() exits when engine prerequisites are missing ----------
 
+
 def test_main_exits_when_tesseract_binary_missing(monkeypatch, caplog):
     """Selecting `--ocr-engine tesseract` without the binary on PATH exits at startup."""
-    monkeypatch.setattr(
-        "sys.argv", ["opendataloader-pdf-hybrid", "--ocr-engine", "tesseract"]
-    )
+    monkeypatch.setattr("sys.argv", ["opendataloader-pdf-hybrid", "--ocr-engine", "tesseract"])
     monkeypatch.setattr(hybrid_server, "_check_dependencies", lambda: None)
     monkeypatch.setattr(hybrid_server, "create_app", lambda **kwargs: object())
     monkeypatch.setattr("shutil.which", lambda _name: None)

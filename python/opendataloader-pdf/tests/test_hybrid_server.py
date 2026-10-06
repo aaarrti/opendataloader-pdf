@@ -23,6 +23,7 @@ def test_gpu_detected_logging(caplog):
             # Simulate the GPU detection block from main()
             try:
                 import torch
+
                 if torch.cuda.is_available():
                     gpu_name = torch.cuda.get_device_name(0)
                     cuda_version = torch.version.cuda
@@ -44,6 +45,7 @@ def test_no_gpu_logging(caplog):
         with caplog.at_level(logging.INFO):
             try:
                 import torch
+
                 if torch.cuda.is_available():
                     pass
                 else:
@@ -60,6 +62,7 @@ def test_no_pytorch_logging(caplog):
         with caplog.at_level(logging.INFO):
             try:
                 import torch  # noqa: F811
+
                 if torch.cuda.is_available():
                     pass
                 else:

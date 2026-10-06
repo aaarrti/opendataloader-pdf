@@ -45,7 +45,9 @@ def main():
     for i, doc in enumerate(documents):
         print(f"--- Document {i+1} ---")
         print(f"Metadata: {doc.metadata}")
-        content_preview = doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
+        content_preview = (
+            doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
+        )
         print(f"Content:\n{content_preview}\n")
 
     # Show integration points

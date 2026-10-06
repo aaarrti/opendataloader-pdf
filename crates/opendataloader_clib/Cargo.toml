@@ -1,0 +1,15 @@
+[package]
+name = "opendataloder_clib"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+# "cdylib" produces a dynamic library; "staticlib" produces a static library.
+# You can include both if you want to generate both formats.
+crate-type = ["cdylib"]
+
+[dependencies]
+opendataloader_core = { path = "../opendataloader_core"}
+anyhow = "1.0.104"
+# Optional: Useful for generating C header (.h) files automatically
+cbindgen = "0.28" 

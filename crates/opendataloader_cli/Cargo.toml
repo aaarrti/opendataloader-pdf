@@ -1,0 +1,9 @@
+[package]
+name = "opendataloder_cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+anyhow = "1.0.104"
+opendataloader_core = { path = "../opendataloader_core"}

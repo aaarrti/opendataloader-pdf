@@ -87,9 +87,7 @@ from typing import Any, Optional
 # Correlates every log line emitted while serving one request. Python's logging
 # has no equivalent of Java's MDC, so the id travels in a context variable and
 # `_RequestIdFilter` copies it onto each record for the formatter to render.
-_request_id: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "request_id", default="-"
-)
+_request_id: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", default="-")
 
 
 class _RequestIdFilter(logging.Filter):
@@ -264,9 +262,7 @@ def _area_fraction(value: str) -> float:
     """Argparse type validator for a fraction of the page area."""
     parsed = float(value)
     if not 0.0 <= parsed <= 1.0:
-        raise argparse.ArgumentTypeError(
-            "--picture-area-threshold must be between 0 and 1"
-        )
+        raise argparse.ArgumentTypeError("--picture-area-threshold must be between 0 and 1")
     return parsed
 
 
@@ -366,9 +362,9 @@ _STAGE_LABELS = {
 # conversion, which is 31 lines saying the same thing.
 _PROGRESS_INTERVAL_S = 15.0
 _PROGRESS_BACKOFF = (
-    (60.0, 15.0),    # first minute: every 15s
-    (300.0, 60.0),   # to five minutes: every minute
-    (None, 120.0),   # beyond: every two minutes
+    (60.0, 15.0),  # first minute: every 15s
+    (300.0, 60.0),  # to five minutes: every minute
+    (None, 120.0),  # beyond: every two minutes
 )
 
 
@@ -406,9 +402,7 @@ def _picture_description_counts(json_content: dict) -> tuple[int, int]:
     return len(pictures), described
 
 
-def _log_picture_descriptions(
-    json_content: dict, picture_area_threshold: float
-) -> None:
+def _log_picture_descriptions(json_content: dict, picture_area_threshold: float) -> None:
     """Report the per-request tally of described pictures.
 
     docling skips a picture below `picture_area_threshold`, and one whose VLM
@@ -516,9 +510,7 @@ def _stages_slowest_first(step_timings: dict[str, Any]) -> dict[str, str]:
     }
     return {
         _STAGE_LABELS[name]: f"{total:.1f}s"
-        for name, total in sorted(
-            usable.items(), key=lambda kv: kv[1], reverse=True
-        )
+        for name, total in sorted(usable.items(), key=lambda kv: kv[1], reverse=True)
     }
 
 
@@ -597,9 +589,7 @@ class _ConversionHeartbeat:
         self._request_id = _request_id.get()
 
     def __enter__(self) -> "_ConversionHeartbeat":
-        self._thread = threading.Thread(
-            target=self._run, name="convert-heartbeat", daemon=True
-        )
+        self._thread = threading.Thread(target=self._run, name="convert-heartbeat", daemon=True)
         self._thread.start()
         return self
 
@@ -627,9 +617,7 @@ class _ConversionHeartbeat:
         token = _request_id.set(self._request_id)
         try:
             start = time.perf_counter()
-            while not self._stop.wait(
-                self._interval_at(time.perf_counter() - start)
-            ):
+            while not self._stop.wait(self._interval_at(time.perf_counter() - start)):
                 logger.info(
                     "converting %s",
                     _pairs(
@@ -974,9 +962,7 @@ def create_converter(
         ocr_options.lang = ocr_lang
 
     # Tesseract-only: Page Segmentation Mode
-    if psm is not None and isinstance(
-        ocr_options, (TesseractOcrOptions, TesseractCliOcrOptions)
-    ):
+    if psm is not None and isinstance(ocr_options, (TesseractOcrOptions, TesseractCliOcrOptions)):
         ocr_options.psm = psm
 
     # Configure picture description options with custom prompt.
@@ -1012,9 +998,7 @@ def create_converter(
         # every heading the PDF path emits defaults to level 1 and the hierarchy
         # is flat. docling's heading-hierarchy stage infers the depth from the
         # PDF outline, then section numbering, then visual style (#441).
-        "heading_hierarchy_options": HeadingHierarchyOptions(
-            enabled=heading_hierarchy
-        ),
+        "heading_hierarchy_options": HeadingHierarchyOptions(enabled=heading_hierarchy),
         # The style tier of that stage reads the parsed PDF cells, which are
         # discarded unless this is on — without them docling silently skips style
         # inference and only numbered headings get a depth, leaving Abstract,
@@ -1037,9 +1021,7 @@ def create_converter(
     # format's backend regardless of the `.pdf` temp-file suffix.
     return DocumentConverter(
         allowed_formats=[InputFormat.PDF],
-        format_options={
-            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-        },
+        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)},
     )
 
 
@@ -1260,7 +1242,9 @@ def create_app(
                     return JSONResponse(
                         {
                             "status": "failure",
-                            "errors": [f"File size exceeds maximum allowed ({max_file_size // (1024*1024)}MB)"],
+                            "errors": [
+                                f"File size exceeds maximum allowed ({max_file_size // (1024*1024)}MB)"
+                            ],
                         },
                         status_code=413,
                     )
@@ -1281,9 +1265,11 @@ def create_app(
                     file=file_name,
                     size=f"{total_size / (1024 * 1024):.1f}MB",
                     pages=page_count if page_count is not None else "?",
-                    range=f"{page_range_tuple[0]}-{page_range_tuple[1]}"
-                    if page_range_tuple
-                    else "all",
+                    range=(
+                        f"{page_range_tuple[0]}-{page_range_tuple[1]}"
+                        if page_range_tuple
+                        else "all"
+                    ),
                     client=_client_address(request),
                 ),
             )
@@ -1305,9 +1291,7 @@ def create_app(
                     t0 = time.perf_counter()
                     with _ConversionHeartbeat(file_name, page_count):
                         if page_range_tuple:
-                            res = converter.convert(
-                                tmp_path, page_range=page_range_tuple
-                            )
+                            res = converter.convert(tmp_path, page_range=page_range_tuple)
                         else:
                             res = converter.convert(tmp_path)
                     return res, time.perf_counter() - t0
@@ -1324,8 +1308,14 @@ def create_app(
             # Extract status and errors from Docling ConversionResult
             from docling.datamodel.base_models import ConversionStatus
 
-            status_value = result.status.value if hasattr(result.status, "value") else str(result.status)
-            errors = [getattr(e, "error_message", str(e)) for e in result.errors] if result.errors else []
+            status_value = (
+                result.status.value if hasattr(result.status, "value") else str(result.status)
+            )
+            errors = (
+                [getattr(e, "error_message", str(e)) for e in result.errors]
+                if result.errors
+                else []
+            )
 
             # Get total page count for accurate failed-page detection
             input_page_count = getattr(result.input, "page_count", None) if result.input else None
@@ -1357,28 +1347,28 @@ def create_app(
             # range the two differ, and dividing by the document's length
             # understated the per-page cost -- a 3-page range out of 14 pages
             # reported 0.34s/pg for work that cost 1.60s/pg.
-            converted_page_count = _converted_page_count(
-                page_range_tuple, input_page_count
-            )
+            converted_page_count = _converted_page_count(page_range_tuple, input_page_count)
             request_elapsed = time.perf_counter() - request_start
             logger.info(
                 "done %s",
                 _pairs(
                     status="ok" if status_value == "success" else status_value,
                     dur=f"{processing_time:.1f}s",
-                    per_page=f"{processing_time / converted_page_count:.2f}s"
-                    if converted_page_count
-                    else None,
-                    pages=converted_page_count
-                    if converted_page_count is not None
-                    else "?",
+                    per_page=(
+                        f"{processing_time / converted_page_count:.2f}s"
+                        if converted_page_count
+                        else None
+                    ),
+                    pages=(converted_page_count if converted_page_count is not None else "?"),
                     # Suppressed when it would merely restate dur. A gap means
                     # time went somewhere outside convert() -- the upload, the
                     # page probe, the queue, the JSON export -- and which one
                     # is the next thing to find out.
-                    total=f"{request_elapsed:.1f}s"
-                    if (request_elapsed - processing_time) > 1.0
-                    else None,
+                    total=(
+                        f"{request_elapsed:.1f}s"
+                        if (request_elapsed - processing_time) > 1.0
+                        else None
+                    ),
                     **stages,
                 ),
             )
@@ -1500,6 +1490,7 @@ def create_app(
         try:
             results = {}
             for profile_name, conv in profile_converters.items():
+
                 def _run(c=conv):
                     with _convert_lock:
                         t0 = time.perf_counter()
@@ -1575,8 +1566,8 @@ def main():
         "--force-ocr",
         action="store_true",
         help="Force full-page OCR on all pages, even pages with embedded text. "
-             "Use for scanned PDFs where embedded text is unreliable. "
-             "Mutually exclusive with --no-ocr.",
+        "Use for scanned PDFs where embedded text is unreliable. "
+        "Mutually exclusive with --no-ocr.",
     )
     ocr_mode_group.add_argument(
         "--no-ocr",
@@ -1585,8 +1576,8 @@ def main():
         # non-UTF-8 consoles (e.g. cp949 on Korean Windows) if help text
         # contains characters the locale codec cannot encode.
         help="Disable OCR entirely. Use when input PDFs already have reliable embedded text - "
-             "prevents duplicate text extraction from images (charts, diagrams, screenshots). "
-             "Mutually exclusive with --force-ocr.",
+        "prevents duplicate text extraction from images (charts, diagrams, screenshots). "
+        "Mutually exclusive with --force-ocr.",
     )
 
     # Engine selection — delegated to docling's factory.
@@ -1595,6 +1586,7 @@ def main():
     # shared with create_converter and tests).
     try:
         from docling.models.factories import get_ocr_factory as _get_ocr_factory
+
         _ocr_engine_choices = sorted(
             set(_get_ocr_factory(allow_external_plugins=False).registered_kind)
             - _OCR_ENGINE_DENYLIST
@@ -1607,27 +1599,27 @@ def main():
         default="easyocr",
         choices=_ocr_engine_choices,
         help=f"OCR engine. Available: {', '.join(_ocr_engine_choices)}. "
-             "Use 'auto' for engine auto-selection per page (delegates the choice to docling). "
-             "Each engine has its own license, language coverage, and accuracy characteristics; "
-             "this server does not validate engine accuracy. "
-             "Default: easyocr (preserves prior behavior).",
+        "Use 'auto' for engine auto-selection per page (delegates the choice to docling). "
+        "Each engine has its own license, language coverage, and accuracy characteristics; "
+        "this server does not validate engine accuracy. "
+        "Default: easyocr (preserves prior behavior).",
     )
     parser.add_argument(
         "--psm",
         type=int,
         default=None,
         help="Tesseract Page Segmentation Mode. Applied only when --ocr-engine is "
-             "'tesseract' or 'tesserocr'; ignored for other engines. See "
-             "`tesseract --help-extra` for valid values.",
+        "'tesseract' or 'tesserocr'; ignored for other engines. See "
+        "`tesseract --help-extra` for valid values.",
     )
     parser.add_argument(
         "--ocr-lang",
         type=str,
         default=None,
         help="OCR languages (comma-separated). Code system depends on --ocr-engine: "
-             "EasyOCR uses ISO 639-1 ('ko,en'), Tesseract uses ISO 639-2 ('kor,eng'), "
-             "RapidOCR uses 'english,chinese', ocrmac uses BCP-47 ('en-US'). "
-             "If omitted, the engine's default languages are used.",
+        "EasyOCR uses ISO 639-1 ('ko,en'), Tesseract uses ISO 639-2 ('kor,eng'), "
+        "RapidOCR uses 'english,chinese', ocrmac uses BCP-47 ('en-US'). "
+        "If omitted, the engine's default languages are used.",
     )
     parser.add_argument(
         "--enrich-formula",
@@ -1662,8 +1654,8 @@ def main():
         type=_area_fraction,
         default=0.0,
         help="Describe only pictures covering at least this fraction of their page "
-             "(0-1). Default 0 describes every picture; raise it to spend the VLM "
-             "only on large figures.",
+        "(0-1). Default 0 describes every picture; raise it to spend the VLM "
+        "only on large figures.",
     )
     parser.add_argument(
         "--max-file-size",
@@ -1683,8 +1675,8 @@ def main():
         action="store_true",
         default=False,
         help="Infer section-header levels so subsections nest under their parent "
-             "(1. -> 1.1 -> 1.1.1) instead of every heading coming back as level 1. "
-             "Read from the PDF outline first, then section numbering, then visual style.",
+        "(1. -> 1.1 -> 1.1.1) instead of every heading coming back as level 1. "
+        "Read from the PDF outline first, then section numbering, then visual style.",
     )
     parser.add_argument(
         "--no-heading-hierarchy",
@@ -1729,8 +1721,7 @@ def main():
     # PDFDLOSP-20 were both reported as.
     if not args.enrich_picture_description:
         threshold_explicit = any(
-            token == "--picture-area-threshold"
-            or token.startswith("--picture-area-threshold=")
+            token == "--picture-area-threshold" or token.startswith("--picture-area-threshold=")
             for token in sys.argv[1:]
         )
         ignored = []
@@ -1766,6 +1757,7 @@ def main():
 
     try:
         import torch
+
         if torch.cuda.is_available():
             detected = _pairs(
                 accelerator="cuda",
@@ -1801,13 +1793,11 @@ def main():
             force_ocr=args.force_ocr or None,
             ocr_lang=",".join(ocr_lang) if ocr_lang else None,
             psm=args.psm,
-            max_file_size=f"{args.max_file_size}MB"
-            if max_file_size_bytes > 0
-            else "unlimited",
+            max_file_size=(f"{args.max_file_size}MB" if max_file_size_bytes > 0 else "unlimited"),
             enrichments=",".join(enrichments) if enrichments else None,
-            picture_area_threshold=args.picture_area_threshold
-            if args.enrich_picture_description
-            else None,
+            picture_area_threshold=(
+                args.picture_area_threshold if args.enrich_picture_description else None
+            ),
         ),
     )
 
