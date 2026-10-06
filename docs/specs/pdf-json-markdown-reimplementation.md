@@ -458,7 +458,8 @@ render and crop the image element's page bounding box at the configured image
 resolution. Write PNG by default; support JPEG when selected. The Java
 reference name pattern is `imageFile<INDEX>.<EXT>` in the per-PDF image
 directory. The index is one-based, document-local, and increments in page
-order and then final element order. PNG uses `.png`; JPEG uses `.jpg`.
+order and then final element order. PNG uses `.png`; JPEG uses `.jpeg`, matching
+the configured format value.
 
 The Markdown and JSON references must point to the same file. Keep the relative
 path stable for the same output layout. Do not write an image file when image
@@ -501,9 +502,18 @@ Do not run independent extraction passes for JSON and Markdown.
 
 Use the committed `samples/pdf/lorem.pdf` input with
 `samples/json/lorem.json` and `samples/markdown/lorem.md`. The JSON fixture is
-the existing Java output. Maven is unavailable in the current Rust checkout, so
-the Markdown fixture is derived from the Java writer rules and should be
-confirmed against a Java CLI run when that build environment is available.
+the Java output. The Markdown fixture has also been confirmed against the Java
+CLI. From the repository root, regenerate both references with:
+
+```shell
+mvn -f java/pom.xml -pl opendataloader-pdf-cli -am package -Dmaven.test.skip=true
+java -jar java/opendataloader-pdf-cli/target/opendataloader-pdf-cli-2.5.13-SNAPSHOT.jar \
+  -f json,markdown -q -o target/java-reference samples/pdf/lorem.pdf
+diff -u samples/json/lorem.json target/java-reference/lorem.json
+diff -u samples/markdown/lorem.md target/java-reference/lorem.md
+```
+
+Both `diff` commands currently succeed with no differences.
 
 The `lorem.pdf` fixture exercises document metadata, one heading, and one
 paragraph. It does not exercise image output, tables, lists, or page selection.
@@ -512,13 +522,12 @@ These fixtures are human-reviewable parity references, not a complete corpus.
 Add targeted fixtures for images, tables, lists, headers/footers, formulas,
 multiple pages, and malformed PDFs before claiming full parity.
 
-The committed Markdown example records the rendered text expected from the
-Java writer rules for the existing one-page fixture, including the final two
-LF characters required by the Java content separator. It has not yet been
-confirmed with a runnable Java CLI. Compare decoded strings, not visual
-Markdown rendering, so trailing spaces, escapes, and final line feeds remain
-testable. Compare JSON semantically for object key order, but compare arrays,
-strings, numbers, nulls, and omitted properties exactly.
+The committed Markdown example records the Java output for the existing
+one-page fixture, including the final two LF characters required by the Java
+content separator. Compare decoded strings, not visual Markdown rendering, so
+trailing spaces, escapes, and final line feeds remain testable. Compare JSON
+semantically for object key order, but compare arrays, strings, numbers, nulls,
+and omitted properties exactly.
 
 ### First-round conformance checklist
 
