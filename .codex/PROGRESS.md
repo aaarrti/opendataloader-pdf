@@ -92,3 +92,10 @@ to `docs/specs/pdf-json-markdown-reimplementation.md` and documented the
 self-contained pipeline in `crates/opendataloader_core/src/lib.rs`. Verified
 that Rust tests and builds use committed samples and do not require Java
 sources, Maven, generated JARs, or decompilation output.
+
+2026-10-06 — Completed B1. Added core `ConversionOptions` with sequential
+defaults and Rayon-backed processing for multiple PDFs when `parallel` is
+enabled; single-PDF conversion remains serial. Added colocated tests comparing
+serial and parallel JSON, Markdown, and image outputs plus enabled single-PDF
+conversion. `cargo fmt --all`, `cargo test -p opendataloader_core` (20 passed),
+and `cargo check --workspace` pass; existing C-library warnings remain.

@@ -69,6 +69,7 @@ flowchart TD
     D1 --> O1
     O1 --> V1["V1: Parity audit"]
     V1 --> X1["X1: Self-contained cleanup"]
+    X1 --> B1["B1: Optional Rayon PDF batch processing"]
 ```
 
 `I1` depends on the stable model and parser but can run alongside `C1`, `S1`,
@@ -286,6 +287,25 @@ finished modules.
   and tests do not require Java sources, Maven, generated JARs, or
   decompilation output.
 
+- [x] **B1 — Add optional Rayon processing for multiple PDFs.** **Depends on:**
+  X1. **Parallel:** no. Add an optional boolean to the core conversion options
+  that defaults to `false`. When enabled and given more than one PDF, process
+  separate PDFs concurrently with the existing Rayon dependency. Keep each
+  document's parser, extraction, and output state independent. Preserve the
+  existing sequential behavior when the flag is false, and keep single-PDF
+  conversion serial. Do not parallelize pages or elements, or add CLI, Python,
+  or C-library flags in this task. **Acceptance:** colocated core tests verify
+  the default is sequential, the enabled multi-PDF path uses Rayon, single-PDF
+  input remains valid with the option enabled, and serial and parallel runs
+  produce equivalent JSON, Markdown, and image outputs for committed fixtures;
+  each output remains associated with its input PDF and errors retain their
+  input-path context.
+  Implemented `ConversionOptions { parallel }` and `convert_with_options`; the
+  existing `convert` wrapper remains sequential by default, while enabled
+  multi-PDF conversion uses Rayon and retains per-input error context. Added
+  colocated tests for serial/parallel output equivalence and enabled
+  single-PDF conversion.
+
 ## Out of scope for this round; planned for later
 
 Do not implement these items while completing the unchecked tasks above.
@@ -293,7 +313,8 @@ Do not implement these items while completing the unchecked tasks above.
 - Refactor the direct Java-to-Rust mapping into idiomatic, layered Rust or
   remove object-oriented shapes that were retained for one-to-one parity.
 - Remove or reduce unsafe code after the initial behavior is correct.
-- Make conversion state thread-safe or add multi-worker page processing.
+- Add page-level parallel processing or general concurrent conversion beyond
+  the per-PDF Rayon option tracked in B1.
 - Improve throughput, memory use, allocations, or image-processing
   performance.
 - Add the Python package or Python bindings.
