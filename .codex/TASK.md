@@ -202,7 +202,7 @@ finished modules.
   recursive nonzero IDs. Full XY-Cut++ parity remains deferred because the
   current parser does not preserve reliable per-chunk coordinates.
 
-- [ ] **M3 — Colocate Rust unit tests with the code they test.** **Depends
+- [x] **M3 — Colocate Rust unit tests with the code they test.** **Depends
   on:** M2, R1. **Parallel:** no; finish before serializer implementation so
   new unit tests follow the same layout. Move each existing Rust unit test into
   the source file and module containing the function or type it tests. Keep
@@ -211,6 +211,9 @@ finished modules.
   module. Preserve test behavior and coverage. **Acceptance:** every Rust unit
   test is colocated with its tested function or type; no centralized unit-test
   module remains for these tests; all `opendataloader_core` tests pass.
+  Implemented by moving the centralized tests into `model`, `parser`,
+  `cleanup`, `semantics`, and `images` inline test modules; `lib.rs` now has
+  no centralized unit-test module.
 
 - [ ] **J1 — Serialize the specified JSON document and elements.**
   **Depends on:** R1, I1. **Parallel:** yes, with D1. Implement the exact root

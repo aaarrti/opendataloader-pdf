@@ -98,3 +98,26 @@ fn write_png_stream(stream: &lopdf::Stream, destination: &Path) -> anyhow::Resul
     encoder.write_header()?.write_image_data(&data)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    #[test]
+    fn external_images_write_png_and_reference_written_file() -> anyhow::Result<()> {
+        let pdf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/chinese_scan.pdf");
+        let image_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/i1-test/images");
+        fs::create_dir_all(&image_dir)?;
+        let mut document = crate::parse_pdf(&pdf_path).map_err(|error| anyhow::anyhow!(error))?;
+        write_external_images(&pdf_path, &image_dir, &mut document, "png")?;
+        let image_path = image_dir.join("imageFile1.png");
+        assert!(image_path.is_file());
+        assert_eq!(fs::read(&image_path)?.get(..8), Some(b"\x89PNG\r\n\x1a\n".as_slice()));
+        assert!(
+            matches!(document.elements.first(), Some(SemanticElement::Image { reference, .. }) if reference.source.as_deref() == Some("images/imageFile1.png") && reference.format.as_deref() == Some("png"))
+        );
+        Ok(())
+    }
+}

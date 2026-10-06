@@ -200,3 +200,75 @@ impl std::error::Error for ConversionError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn model_preserves_fixture_metadata_and_page_geometry() {
+        let document = Document {
+            file_name: "lorem.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata {
+                author: Some("anonymous".into()),
+                title: Some("untitled".into()),
+                ..Default::default()
+            },
+            pages: vec![Page {
+                index: 0,
+                width: 595.276,
+                height: 841.89,
+                chunks: vec![ParserChunk::Text(TextChunk {
+                    page_index: 0,
+                    bounds: BoundingBox {
+                        left: 72.0,
+                        bottom: 766.698,
+                        right: 378.11,
+                        top: 783.358,
+                    },
+                    text: "Lorem".into(),
+                    glyph_order: vec![0, 1, 2, 3, 4],
+                    character_spacing: None,
+                    font: FontInfo {
+                        name: Some("Helvetica-Bold".into()),
+                        size: Some(14.0),
+                        ..Default::default()
+                    },
+                    parser_order: 0,
+                    structure_id: None,
+                    pdfua_tag: None,
+                })],
+            }],
+            elements: Vec::new(),
+        };
+
+        assert_eq!(document.page_count, document.pages.len());
+        assert_eq!(document.metadata.author.as_deref(), Some("anonymous"));
+        assert_eq!(document.pages[0].index, 0);
+        assert_eq!(document.pages[0].chunks.len(), 1);
+    }
+
+    #[test]
+    fn model_represents_raster_image_reference() {
+        let reference = ImageReference {
+            source: Some("images/imageFile1.png".into()),
+            data: None,
+            format: Some("png".into()),
+        };
+        assert_eq!(reference.source.as_deref(), Some("images/imageFile1.png"));
+        assert!(reference.data.is_none());
+    }
+
+    #[test]
+    fn conversion_errors_remain_distinguishable() {
+        let path = PathBuf::from("input.pdf");
+        let invalid = ConversionError::InvalidInput {
+            path: path.clone(),
+            reason: "missing header".into(),
+        };
+        let password = ConversionError::PasswordProtected { path };
+        assert!(invalid.to_string().contains("invalid PDF input"));
+        assert!(password.to_string().contains("password-protected"));
+    }
+}

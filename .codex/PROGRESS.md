@@ -52,3 +52,8 @@ explicit parser-order mode, and recursive stable nonzero IDs in
 `parse_pdf` and added focused tests. Full XY-Cut++ parity remains deferred
 until the parser preserves reliable per-chunk coordinates. `cargo test
 -p opendataloader_core` (14 passed) and `cargo check --workspace` pass.
+
+2026-10-06 — Completed M3. Moved the centralized Rust unit tests into the
+`model`, `parser`, `cleanup`, `semantics`, and `images` modules, leaving
+`lib.rs` without a centralized test module. `cargo fmt --all`, `cargo test
+-p opendataloader_core` (14 passed), and `cargo check --workspace` pass.

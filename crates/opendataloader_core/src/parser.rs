@@ -280,3 +280,61 @@ fn line_bounds(operation: &Operation) -> Option<BoundingBox> {
         top: bottom.max(top),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn parser_reads_lorem_metadata_pages_and_text() -> anyhow::Result<()> {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/lorem.pdf");
+        let document = crate::parse_pdf(&path).map_err(|error| anyhow::anyhow!(error))?;
+        assert_eq!(document.page_count, 1);
+        assert_eq!(document.metadata.author.as_deref(), Some("leebd-public"));
+        assert!(document.metadata.title.is_none());
+        assert!(document.pages[0].width > 594.0);
+        assert!(
+            document.pages[0]
+                .chunks
+                .iter()
+                .any(|chunk| matches!(chunk, ParserChunk::Text(text) if !text.text.is_empty()))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parser_distinguishes_invalid_and_password_inputs() {
+        let invalid_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/fake-jpg.pdf");
+        assert!(matches!(
+            crate::parse_pdf(&invalid_path),
+            Err(ConversionError::InvalidInput { .. })
+        ));
+        let password_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/password-protected.pdf");
+        assert!(matches!(
+            crate::parse_pdf(&password_path),
+            Err(ConversionError::PasswordProtected { .. })
+        ));
+    }
+
+    #[test]
+    fn parser_preserves_raster_image_chunk_without_text() -> anyhow::Result<()> {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/chinese_scan.pdf");
+        let document = crate::parse_pdf(&path).map_err(|error| anyhow::anyhow!(error))?;
+        assert!(
+            document
+                .pages
+                .iter()
+                .flat_map(|page| page.chunks.iter())
+                .any(|chunk| matches!(chunk, ParserChunk::Image(_)))
+        );
+        assert!(
+            !document
+                .pages
+                .iter()
+                .flat_map(|page| page.chunks.iter())
+                .any(|chunk| matches!(chunk, ParserChunk::Text(_)))
+        );
+        Ok(())
+    }
+}

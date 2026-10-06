@@ -332,3 +332,166 @@ fn union_bounds(left: BoundingBox, right: BoundingBox) -> BoundingBox {
         top: left.top.max(right.top),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn text(text: &str, top: f64, size: f64) -> ParserChunk {
+        ParserChunk::Text(TextChunk {
+            page_index: 0,
+            bounds: BoundingBox {
+                left: 50.0,
+                bottom: top - 10.0,
+                right: 250.0,
+                top,
+            },
+            text: text.into(),
+            glyph_order: Vec::new(),
+            character_spacing: None,
+            font: FontInfo {
+                size: Some(size),
+                ..Default::default()
+            },
+            parser_order: 0,
+            structure_id: None,
+            pdfua_tag: None,
+        })
+    }
+
+    #[test]
+    fn reconstructs_heading_paragraph_and_unordered_list() {
+        let mut document = Document {
+            file_name: "semantic.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 300.0,
+                height: 800.0,
+                chunks: vec![
+                    text("Title", 700.0, 18.0),
+                    text("First paragraph line", 650.0, 10.0),
+                    text("continues here", 635.0, 10.0),
+                    text("- one", 580.0, 10.0),
+                    text("- two", 565.0, 10.0),
+                ],
+            }],
+            elements: Vec::new(),
+        };
+        reconstruct_semantics(&mut document);
+        assert!(matches!(
+            document.elements[0],
+            SemanticElement::Heading { level: 3, .. }
+        ));
+        assert!(
+            matches!(document.elements[1], SemanticElement::Paragraph { ref text, .. } if text == "First paragraph line continues here")
+        );
+        assert!(
+            matches!(document.elements[2], SemanticElement::List { style: ListStyle::Unordered, ref items, .. } if items.len() == 2)
+        );
+    }
+
+    #[test]
+    fn reconstructs_border_table_rows_cells_and_headers() {
+        let text = |value: &str, bounds: BoundingBox| {
+            ParserChunk::Text(TextChunk {
+                page_index: 0,
+                bounds,
+                text: value.into(),
+                glyph_order: Vec::new(),
+                character_spacing: None,
+                font: FontInfo::default(),
+                parser_order: 0,
+                structure_id: None,
+                pdfua_tag: None,
+            })
+        };
+        let line = |bounds: BoundingBox| {
+            ParserChunk::LineArt(LineArtChunk {
+                page_index: 0,
+                bounds,
+                parser_order: 0,
+            })
+        };
+        let mut chunks = Vec::new();
+        for x in [10.0, 60.0, 110.0] {
+            chunks.push(line(BoundingBox {
+                left: x,
+                bottom: 10.0,
+                right: x,
+                top: 100.0,
+            }));
+        }
+        for y in [10.0, 55.0, 100.0] {
+            chunks.push(line(BoundingBox {
+                left: 10.0,
+                bottom: y,
+                right: 110.0,
+                top: y,
+            }));
+        }
+        chunks.extend([
+            text(
+                "Name",
+                BoundingBox {
+                    left: 15.0,
+                    bottom: 80.0,
+                    right: 45.0,
+                    top: 90.0,
+                },
+            ),
+            text(
+                "Value",
+                BoundingBox {
+                    left: 65.0,
+                    bottom: 80.0,
+                    right: 95.0,
+                    top: 90.0,
+                },
+            ),
+            text(
+                "A",
+                BoundingBox {
+                    left: 15.0,
+                    bottom: 25.0,
+                    right: 25.0,
+                    top: 35.0,
+                },
+            ),
+            text(
+                "1",
+                BoundingBox {
+                    left: 65.0,
+                    bottom: 25.0,
+                    right: 75.0,
+                    top: 35.0,
+                },
+            ),
+        ]);
+        let mut document = Document {
+            file_name: "table.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 120.0,
+                height: 120.0,
+                chunks,
+            }],
+            elements: Vec::new(),
+        };
+        reconstruct_semantics(&mut document);
+        let SemanticElement::Table { rows, .. } = &document.elements[0] else {
+            panic!("expected a table element")
+        };
+        assert_eq!(rows.len(), 2);
+        assert!(
+            matches!(&rows[0], SemanticElement::TableRow { cells, .. } if matches!(&cells[0], SemanticElement::TableCell { is_header: true, children, .. } if matches!(&children[0], SemanticElement::Paragraph { text, .. } if text == "Name")))
+        );
+        assert!(
+            matches!(&rows[1], SemanticElement::TableRow { cells, .. } if matches!(&cells[1], SemanticElement::TableCell { is_header: false, children, .. } if matches!(&children[0], SemanticElement::Paragraph { text, .. } if text == "1")))
+        );
+        assert_eq!(document.elements.len(), 1);
+    }
+}

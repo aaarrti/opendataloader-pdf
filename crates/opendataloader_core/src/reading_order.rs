@@ -65,8 +65,7 @@ fn assign_ids(element: &mut SemanticElement, next_id: &mut u64) {
     *next_id += 1;
 
     match element {
-        SemanticElement::List { items, .. }
-        | SemanticElement::Toc { items, .. } => {
+        SemanticElement::List { items, .. } | SemanticElement::Toc { items, .. } => {
             for item in items {
                 assign_ids(item, next_id);
             }
@@ -127,17 +126,44 @@ mod tests {
 
     #[test]
     fn xycut_order_and_ids_are_deterministic() {
-        let mut document = document(vec![paragraph(1, 700.0, 10.0, "second"), paragraph(0, 700.0, 10.0, "first")]);
+        let mut document = document(vec![
+            paragraph(1, 700.0, 10.0, "second"),
+            paragraph(0, 700.0, 10.0, "first"),
+        ]);
         apply(&mut document, ReadingOrder::Xycut);
-        assert_eq!(document.elements.iter().map(|element| common(element).page_index).collect::<Vec<_>>(), vec![0, 1]);
-        assert_eq!(document.elements.iter().map(|element| common(element).id).collect::<Vec<_>>(), vec![Some(1), Some(2)]);
+        assert_eq!(
+            document
+                .elements
+                .iter()
+                .map(|element| common(element).page_index)
+                .collect::<Vec<_>>(),
+            vec![0, 1]
+        );
+        assert_eq!(
+            document
+                .elements
+                .iter()
+                .map(|element| common(element).id)
+                .collect::<Vec<_>>(),
+            vec![Some(1), Some(2)]
+        );
     }
 
     #[test]
     fn off_preserves_parser_order_and_assigns_ids() {
-        let mut document = document(vec![paragraph(1, 700.0, 10.0, "second"), paragraph(0, 700.0, 10.0, "first")]);
+        let mut document = document(vec![
+            paragraph(1, 700.0, 10.0, "second"),
+            paragraph(0, 700.0, 10.0, "first"),
+        ]);
         apply(&mut document, ReadingOrder::Off);
-        assert_eq!(document.elements.iter().map(|element| common(element).page_index).collect::<Vec<_>>(), vec![1, 0]);
+        assert_eq!(
+            document
+                .elements
+                .iter()
+                .map(|element| common(element).page_index)
+                .collect::<Vec<_>>(),
+            vec![1, 0]
+        );
         assert!(document.elements.iter().all(|element| common(element).id.is_some()));
     }
 }
