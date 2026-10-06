@@ -10,10 +10,16 @@ members = [
 
 [manifest.dependency-groups]
 dev = [
+    { name = "agent-loops", git = "https://github.com/aaarrti/agent-loops.git" },
     { name = "dvc", extras = ["gs"], specifier = ">=3.67.1" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.16.10" },
 ]
+
+[[package]]
+name = "agent-loops"
+version = "0.1.0.dev1"
+source = { git = "https://github.com/aaarrti/agent-loops.git#69bf0d0f86cf6249edf17057e1ed8b4a703e681b" }
 
 [[package]]
 name = "aiohappyeyeballs"

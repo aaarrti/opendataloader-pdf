@@ -12,12 +12,12 @@ decompile-cfr jar output_dir:
     java -jar "{{cfr_jar}}" "{{jar}}" --outputdir "{{output_dir}}"
 
 actor-critic-loop:
-    uv run -m agent_loops.actor_critic --task .codex/TASK.md --max-iterations 100 \
+    uv run actor-critic-loop --task .codex/TASK.md --max-iterations 100 \
     --actor-model gpt-5.6-luna --critic-model gpt-5.6-sol \
     --actor-reasoning-level medium --critic-reasoning-level high
 
 ralph-loop:
-    uv run -m agent_loops.ralph --task .codex/TASK.md --progress .codex/PROGRESS.md \
+    uv run ralph-loop --task .codex/TASK.md --progress .codex/PROGRESS.md \
     --model gpt-5.6-luna --reasoning-effort medium \
     --max-iterations 30
 
@@ -33,6 +33,10 @@ setup:
     uv sync --dev
     uv run dvc pull
 
+lint:
+    cargo clippy --workspace --all-targets --locked -- -D warnings
+    uv run ruff check .
+    uv run black --check .
 
 test:
     rm -f "{{py_src}}/{{so_name}}"
@@ -48,4 +52,4 @@ build:
     mv "{{py_src}}/{{clib_name}}" "{{py_src}}/{{so_name}}"
     uv build --package opendataloader
     uv build --package opendataloader-mcp
-    
+
