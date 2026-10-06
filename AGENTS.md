@@ -19,6 +19,19 @@
 - Treat remaining Java files as reference or legacy material unless the task
   explicitly asks you to change them.
 
+### Rust conventions
+
+- Use `tracing` events and spans for Rust logging and instrumentation. Initialize
+  `tracing_subscriber` at the executable or application entry point; library
+  crates emit tracing events but do not install a global subscriber.
+- Use `anyhow::Result<T>` for fallible Rust functions and add context to errors
+  when it helps identify the failed operation.
+- Do not call `.unwrap()` in Rust code, including tests. Propagate errors with
+  `?`; make test failures explicit with assertions or returned errors.
+- Use `clap` to define and parse command-line arguments.
+- Use `rayon` for parallel or multithreaded Rust work. Do not create a separate
+  thread pool or use raw threads for parallel processing.
+
 ### Code discovery
 
 Use the codebase-memory MCP graph tools before grep, glob, or file search when

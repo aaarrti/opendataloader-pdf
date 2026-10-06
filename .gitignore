@@ -95,3 +95,4 @@ scripts/generate-test-fixtures.py
 
 /target
 .codebase-memory/
+vendor
