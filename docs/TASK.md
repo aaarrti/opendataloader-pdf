@@ -94,7 +94,7 @@ finished modules.
   implementation task to at least one case; `git status` shows all intended
   fixture files tracked and no generated build/decompilation artifacts.
 
-- [ ] **M1 — Define the Rust core data model and conversion errors.**
+- [x] **M1 — Define the Rust core data model and conversion errors.**
   **Depends on:** none. **Parallel:** before P1; agree the types with all
   branch owners before parallel implementation begins. Add the smallest
   internal representation for a document, metadata, ordered pages, positioned
@@ -105,7 +105,8 @@ finished modules.
   specified JSON/Markdown element kinds and optional metadata without losing
   page, geometry, text, or image identity; errors distinguish invalid input,
   password, input/output I/O, and document processing; focused tests verify
-  model values derived from the committed Java fixture manifest.
+  model values derived from the committed Java fixture manifest. Implemented
+  in `crates/opendataloader_core/src/lib.rs` with focused model and error tests.
 
 - [ ] **P1 — Parse local PDFs into document metadata and page chunks.**
   **Depends on:** M1, F1. **Parallel:** no; this is the parser foundation.
