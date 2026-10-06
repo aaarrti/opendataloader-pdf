@@ -105,3 +105,9 @@ switches into `ConversionOptions` alongside `parallel`; updated the core batch
 conversion path, CLI caller, and colocated tests. `cargo fmt --all`,
 `cargo test --workspace` (20 core tests passed), and `cargo check --workspace`
 pass; existing C-library warnings remain.
+
+2026-10-07 — Completed C3. Extracted the per-PDF conversion work into the
+explicit `convert_one` function and reused it from sequential and Rayon batch
+paths. `cargo fmt --all -- --check`, `cargo test --workspace` (20 tests
+passed), and `cargo check --workspace` pass; existing C-library warnings
+remain.

@@ -327,7 +327,7 @@ finished modules.
   Implemented all four switches on `ConversionOptions`, updated the core batch
   path and CLI caller to use the struct, and updated colocated conversion tests.
 
-- [ ] **C3 — Extract the per-PDF conversion closure into a function.**
+- [x] **C3 — Extract the per-PDF conversion closure into a function.**
   **Depends on:** B1, C2. **Parallel:** no. Move the per-PDF conversion
   closure inside the batch conversion flow into a named `convert_one` function
   in the appropriate core module. Pass its inputs and conversion options
@@ -337,6 +337,9 @@ finished modules.
   orchestration contains no per-PDF conversion closure; both execution paths
   call `convert_one`; its tests are in the same source file; committed Java
   fixture outputs remain unchanged; core tests pass without `.unwrap()`.
+  Implemented `convert_one` in `crates/opendataloader_core/src/lib.rs` with
+  explicit PDF path, output directory, and options inputs; both sequential and
+  Rayon paths call it.
 
 - [ ] **CLI1 — Define and implement the local conversion CLI.** **Depends on:**
   C2, C3, C4. **Parallel:** no. Complete these actions in

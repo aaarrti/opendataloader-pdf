@@ -55,38 +55,42 @@ pub fn convert_with_options(
     }
     fs::create_dir_all(&output_dir).with_context(|| format!("create output directory {}", output_dir.display()))?;
 
-    let convert_one = |pdf_path: &PathBuf| -> anyhow::Result<()> {
-        let mut document = parse_pdf(&pdf_path)
-            .map_err(|error| anyhow::anyhow!(error))
-            .with_context(|| format!("parse PDF {}", pdf_path.display()))?;
-        let stem = pdf_path
-            .file_stem()
-            .and_then(|value| value.to_str())
-            .ok_or_else(|| anyhow::anyhow!("PDF has no valid file name: {}", pdf_path.display()))?;
-
-        if options.image_output_enabled {
-            write_external_images(
-                &pdf_path,
-                &output_dir.join(format!("{stem}_images")),
-                &mut document,
-                "png",
-            )?;
-        }
-        if options.json_enabled {
-            fs::write(output_dir.join(format!("{stem}.json")), serialize_document(&document)?)
-                .with_context(|| format!("write JSON output for {}", pdf_path.display()))?;
-        }
-        if options.markdown_enabled {
-            fs::write(output_dir.join(format!("{stem}.md")), serialize_markdown(&document)?)
-                .with_context(|| format!("write Markdown output for {}", pdf_path.display()))?;
-        }
-        Ok(())
-    };
-
     if options.parallel && pdf_paths.len() > 1 {
-        pdf_paths.into_par_iter().try_for_each(convert_one)?;
+        pdf_paths
+            .into_par_iter()
+            .try_for_each(|pdf_path| convert_one(pdf_path, output_dir.as_path(), &options))?;
     } else {
-        pdf_paths.into_iter().try_for_each(convert_one)?;
+        pdf_paths
+            .into_iter()
+            .try_for_each(|pdf_path| convert_one(pdf_path, output_dir.as_path(), &options))?;
+    }
+    Ok(())
+}
+
+fn convert_one(pdf_path: &Path, output_dir: &Path, options: &ConversionOptions) -> anyhow::Result<()> {
+    let mut document = parse_pdf(pdf_path)
+        .map_err(|error| anyhow::anyhow!(error))
+        .with_context(|| format!("parse PDF {}", pdf_path.display()))?;
+    let stem = pdf_path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| anyhow::anyhow!("PDF has no valid file name: {}", pdf_path.display()))?;
+
+    if options.image_output_enabled {
+        write_external_images(
+            pdf_path,
+            &output_dir.join(format!("{stem}_images")),
+            &mut document,
+            "png",
+        )?;
+    }
+    if options.json_enabled {
+        fs::write(output_dir.join(format!("{stem}.json")), serialize_document(&document)?)
+            .with_context(|| format!("write JSON output for {}", pdf_path.display()))?;
+    }
+    if options.markdown_enabled {
+        fs::write(output_dir.join(format!("{stem}.md")), serialize_markdown(&document)?)
+            .with_context(|| format!("write Markdown output for {}", pdf_path.display()))?;
     }
     Ok(())
 }
@@ -114,8 +118,8 @@ mod tests {
         fs::create_dir_all(&output_dir)?;
         let source = fs::read(&pdf_path)?;
         convert_with_options(
-            vec![pdf_path.clone()],
-            output_dir.clone(),
+            &[pdf_path.clone()],
+            &output_dir,
             ConversionOptions {
                 json_enabled: true,
                 markdown_enabled: true,
@@ -161,8 +165,8 @@ mod tests {
         fs::copy(&source_pdf, &second_pdf)?;
 
         convert_with_options(
-            vec![first_pdf.clone(), second_pdf.clone()],
-            sequential_dir.clone(),
+            &[first_pdf.clone(), second_pdf.clone()],
+            &sequential_dir,
             ConversionOptions {
                 json_enabled: true,
                 markdown_enabled: true,
@@ -171,8 +175,8 @@ mod tests {
             },
         )?;
         convert_with_options(
-            vec![first_pdf.clone(), second_pdf.clone()],
-            parallel_dir.clone(),
+            &[first_pdf.clone(), second_pdf.clone()],
+            &parallel_dir,
             ConversionOptions {
                 json_enabled: true,
                 markdown_enabled: true,
@@ -198,8 +202,8 @@ mod tests {
 
         let single_dir = manifest_dir.join("../../target/b1-single");
         convert_with_options(
-            vec![first_pdf],
-            single_dir.clone(),
+            &[first_pdf],
+            &single_dir,
             ConversionOptions {
                 json_enabled: true,
                 parallel: true,

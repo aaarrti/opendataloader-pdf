@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::path::PathBuf;
 
-use opendataloader_core::{convert_with_options, ConversionOptions};
+use opendataloader_core::{ConversionOptions, convert_with_options};
 
 #[derive(Debug, Parser)]
 struct CliArg {
