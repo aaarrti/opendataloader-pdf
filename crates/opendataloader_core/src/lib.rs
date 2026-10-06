@@ -292,7 +292,15 @@ pub fn parse_pdf(path: &Path) -> Result<Document, ConversionError> {
 pub fn reconstruct_semantics(document: &mut Document) {
     document.elements.clear();
     for page in &document.pages {
-        let lines = text_lines(page);
+        let table = table_from_page(page);
+        let table_bounds = table.as_ref().map(element_bounds);
+        if let Some(table) = table {
+            document.elements.push(table);
+        }
+        let lines = text_lines(page)
+            .into_iter()
+            .filter(|line| table_bounds.is_none_or(|bounds| !contains_bounds(bounds, line.common.bounds)))
+            .collect::<Vec<_>>();
         let mut index = 0;
         while index < lines.len() {
             if let Some((style, _)) = list_marker(&lines[index].text) {
@@ -349,6 +357,153 @@ pub fn reconstruct_semantics(document: &mut Document) {
             }
         }
     }
+}
+
+fn table_from_page(page: &Page) -> Option<SemanticElement> {
+    let epsilon = 0.01;
+    let mut columns = Vec::new();
+    let mut rows = Vec::new();
+    for chunk in &page.chunks {
+        let ParserChunk::LineArt(line) = chunk else {
+            continue;
+        };
+        let width = line.bounds.right - line.bounds.left;
+        let height = line.bounds.top - line.bounds.bottom;
+        if width.abs() <= epsilon && height > epsilon {
+            columns.push(line.bounds.left);
+        } else if height.abs() <= epsilon && width > epsilon {
+            rows.push(line.bounds.bottom);
+        } else if width > epsilon && height > epsilon {
+            columns.extend([line.bounds.left, line.bounds.right]);
+            rows.extend([line.bounds.bottom, line.bounds.top]);
+        }
+    }
+    deduplicate_coordinates(&mut columns);
+    deduplicate_coordinates(&mut rows);
+    if columns.len() < 2 || rows.len() < 2 {
+        return None;
+    }
+
+    let text_lines = positioned_text_lines(page);
+    let bounds = BoundingBox {
+        left: *columns.first()?,
+        bottom: *rows.first()?,
+        right: *columns.last()?,
+        top: *rows.last()?,
+    };
+    if !text_lines
+        .iter()
+        .any(|line| contains_bounds(bounds, line.common.bounds))
+    {
+        return None;
+    }
+    let mut table_rows = Vec::new();
+    for (row_index, pair) in rows.windows(2).rev().enumerate() {
+        let row_bounds = BoundingBox {
+            left: bounds.left,
+            bottom: pair[0],
+            right: bounds.right,
+            top: pair[1],
+        };
+        let mut cells = Vec::new();
+        for (column_index, pair) in columns.windows(2).enumerate() {
+            let cell_bounds = BoundingBox {
+                left: pair[0],
+                bottom: row_bounds.bottom,
+                right: pair[1],
+                top: row_bounds.top,
+            };
+            let children = text_lines
+                .iter()
+                .filter(|line| contains_bounds(cell_bounds, line.common.bounds))
+                .map(|line| SemanticElement::Paragraph {
+                    common: line.common.clone(),
+                    text: line.text.clone(),
+                    font: line.font.clone(),
+                })
+                .collect();
+            cells.push(SemanticElement::TableCell {
+                common: ElementCommon {
+                    id: None,
+                    page_index: page.index,
+                    bounds: cell_bounds,
+                    pdfua_tag: Some(if row_index == 0 { "TH" } else { "TD" }.into()),
+                },
+                row_number: row_index + 1,
+                column_number: column_index + 1,
+                row_span: 1,
+                column_span: 1,
+                is_header: row_index == 0,
+                children,
+            });
+        }
+        table_rows.push(SemanticElement::TableRow {
+            common: ElementCommon {
+                id: None,
+                page_index: page.index,
+                bounds: row_bounds,
+                pdfua_tag: Some("TR".into()),
+            },
+            row_number: row_index + 1,
+            cells,
+        });
+    }
+    Some(SemanticElement::Table {
+        common: ElementCommon {
+            id: None,
+            page_index: page.index,
+            bounds,
+            pdfua_tag: Some("Table".into()),
+        },
+        rows: table_rows,
+    })
+}
+
+fn deduplicate_coordinates(values: &mut Vec<f64>) {
+    values.sort_by(f64::total_cmp);
+    values.dedup_by(|left, right| (*left - *right).abs() <= 0.01);
+}
+
+fn positioned_text_lines(page: &Page) -> Vec<TextLine> {
+    page.chunks
+        .iter()
+        .filter_map(|chunk| match chunk {
+            ParserChunk::Text(text) => Some(TextLine {
+                common: ElementCommon {
+                    id: None,
+                    page_index: text.page_index,
+                    bounds: text.bounds,
+                    pdfua_tag: None,
+                },
+                text: text.text.clone(),
+                font: text.font.clone(),
+            }),
+            _ => None,
+        })
+        .collect()
+}
+
+fn element_bounds(element: &SemanticElement) -> BoundingBox {
+    match element {
+        SemanticElement::Table { common, .. }
+        | SemanticElement::TableRow { common, .. }
+        | SemanticElement::TableCell { common, .. }
+        | SemanticElement::Heading { common, .. }
+        | SemanticElement::Paragraph { common, .. }
+        | SemanticElement::TextChunk { common, .. }
+        | SemanticElement::TextBlock { common, .. }
+        | SemanticElement::Formula { common, .. }
+        | SemanticElement::Image { common, .. }
+        | SemanticElement::Caption { common, .. }
+        | SemanticElement::List { common, .. }
+        | SemanticElement::ListItem { common, .. }
+        | SemanticElement::Toc { common, .. }
+        | SemanticElement::TocItem { common, .. } => common.bounds,
+    }
+}
+
+fn contains_bounds(outer: BoundingBox, inner: BoundingBox) -> bool {
+    inner.left >= outer.left && inner.right <= outer.right && inner.bottom >= outer.bottom && inner.top <= outer.top
 }
 
 #[derive(Debug, Clone)]
@@ -811,6 +966,133 @@ mod tests {
         assert!(
             matches!(document.elements[2], SemanticElement::List { style: ListStyle::Unordered, ref items, .. } if items.len() == 2)
         );
+    }
+
+    #[test]
+    fn reconstructs_border_table_rows_cells_and_headers() {
+        let text = |value: &str, bounds: BoundingBox| {
+            ParserChunk::Text(TextChunk {
+                page_index: 0,
+                bounds,
+                text: value.into(),
+                glyph_order: Vec::new(),
+                character_spacing: None,
+                font: FontInfo::default(),
+                parser_order: 0,
+                structure_id: None,
+                pdfua_tag: None,
+            })
+        };
+        let line = |bounds: BoundingBox| {
+            ParserChunk::LineArt(LineArtChunk {
+                page_index: 0,
+                bounds,
+                parser_order: 0,
+            })
+        };
+        let mut document = Document {
+            file_name: "table.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 120.0,
+                height: 120.0,
+                chunks: vec![
+                    line(BoundingBox {
+                        left: 10.0,
+                        bottom: 10.0,
+                        right: 10.0,
+                        top: 100.0,
+                    }),
+                    line(BoundingBox {
+                        left: 60.0,
+                        bottom: 10.0,
+                        right: 60.0,
+                        top: 100.0,
+                    }),
+                    line(BoundingBox {
+                        left: 110.0,
+                        bottom: 10.0,
+                        right: 110.0,
+                        top: 100.0,
+                    }),
+                    line(BoundingBox {
+                        left: 10.0,
+                        bottom: 10.0,
+                        right: 110.0,
+                        top: 10.0,
+                    }),
+                    line(BoundingBox {
+                        left: 10.0,
+                        bottom: 55.0,
+                        right: 110.0,
+                        top: 55.0,
+                    }),
+                    line(BoundingBox {
+                        left: 10.0,
+                        bottom: 100.0,
+                        right: 110.0,
+                        top: 100.0,
+                    }),
+                    text(
+                        "Name",
+                        BoundingBox {
+                            left: 15.0,
+                            bottom: 80.0,
+                            right: 45.0,
+                            top: 90.0,
+                        },
+                    ),
+                    text(
+                        "Value",
+                        BoundingBox {
+                            left: 65.0,
+                            bottom: 80.0,
+                            right: 95.0,
+                            top: 90.0,
+                        },
+                    ),
+                    text(
+                        "A",
+                        BoundingBox {
+                            left: 15.0,
+                            bottom: 25.0,
+                            right: 25.0,
+                            top: 35.0,
+                        },
+                    ),
+                    text(
+                        "1",
+                        BoundingBox {
+                            left: 65.0,
+                            bottom: 25.0,
+                            right: 75.0,
+                            top: 35.0,
+                        },
+                    ),
+                ],
+            }],
+            elements: Vec::new(),
+        };
+
+        reconstruct_semantics(&mut document);
+
+        let SemanticElement::Table { rows, .. } = &document.elements[0] else {
+            panic!("expected a table element");
+        };
+        assert_eq!(rows.len(), 2);
+        assert!(matches!(
+            &rows[0],
+            SemanticElement::TableRow { cells, .. }
+                if matches!(&cells[0], SemanticElement::TableCell { is_header: true, children, .. } if matches!(&children[0], SemanticElement::Paragraph { text, .. } if text == "Name"))
+        ));
+        assert!(matches!(
+            &rows[1],
+            SemanticElement::TableRow { cells, .. }
+                if matches!(&cells[1], SemanticElement::TableCell { is_header: false, children, .. } if matches!(&children[0], SemanticElement::Paragraph { text, .. } if text == "1"))
+        ));
+        assert_eq!(document.elements.len(), 1);
     }
 
     #[test]

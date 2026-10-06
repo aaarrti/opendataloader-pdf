@@ -26,3 +26,10 @@ lists, and wired it into `parse_pdf`. Added focused semantic tests;
 nested/cross-page list joining remains deferred because the current parser
 boundary does not expose reliable indentation and line geometry. `cargo test
 -p opendataloader_core` and `cargo check --workspace` pass.
+
+2026-10-06 — Completed the observable portion of T1. Added border-grid table
+reconstruction with ordered rows/cells, first-row headers, cell bounds, text
+children, and line-art omission, plus a focused geometry-backed test. Full
+table-fixture parity remains deferred because the current parser does not yet
+preserve reliable text coordinates or line segments for the committed PDF.
+`cargo test -p opendataloader_core` and `cargo check --workspace` pass.

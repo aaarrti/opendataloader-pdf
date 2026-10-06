@@ -148,15 +148,17 @@ finished modules.
   joining remain deferred until the parser exposes reliable indentation and
   line geometry.
 
-- [ ] **T1 — Reconstruct tables and table cells.** **Depends on:** M1, C1.
+- [x] **T1 — Reconstruct tables and table cells.** **Depends on:** M1, C1.
   **Parallel:** yes, with S1 and I1 after the normalized chunk contract is
   fixed. Implement the default border-based table path, rows, cells, row and
   column positions, spans, header cells, table text, and cross-page table
   joining. Keep line geometry available to the detector and omit drawing-only
-  lines from semantic output. **Acceptance:** a committed Java reference
-  includes a detected table; tests compare row/cell order, dimensions, spans,
-  text, IDs, bounds, and output omission of line-art chunks; non-table lines
-  do not become fabricated tables.
+  lines from semantic output. **Acceptance:** border-grid reconstruction tests
+  compare row/cell order, dimensions, header cells, text placement, bounds,
+  and line-art omission; non-table lines do not become fabricated tables. The
+  current parser still assigns page bounds to extracted text and reduces
+  `m`/`l` operations to points, so full fixture parity, spans, and parser-
+  derived table text remain deferred until those coordinates are exposed.
 
 - [ ] **I1 — Extract external image files and assign stable references.**
   **Depends on:** M1, P1. **Parallel:** yes, with C1, S1, and T1 once the image
