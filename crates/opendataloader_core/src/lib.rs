@@ -273,7 +273,7 @@ pub fn parse_pdf(path: &Path) -> Result<Document, ConversionError> {
         parsed_pages.push(page);
     }
 
-    Ok(Document {
+    let mut document = Document {
         file_name: path
             .file_name()
             .and_then(|name| name.to_str())
@@ -283,7 +283,172 @@ pub fn parse_pdf(path: &Path) -> Result<Document, ConversionError> {
         metadata,
         pages: parsed_pages,
         elements: Vec::new(),
-    })
+    };
+    reconstruct_semantics(&mut document);
+    Ok(document)
+}
+
+/// Reconstruct the text elements that can be supported by the parser boundary.
+pub fn reconstruct_semantics(document: &mut Document) {
+    document.elements.clear();
+    for page in &document.pages {
+        let lines = text_lines(page);
+        let mut index = 0;
+        while index < lines.len() {
+            if let Some((style, _)) = list_marker(&lines[index].text) {
+                let start = index;
+                let mut items = Vec::new();
+                while index < lines.len() {
+                    let Some((item_style, item_text)) = list_marker(&lines[index].text) else {
+                        break;
+                    };
+                    if item_style != style {
+                        break;
+                    }
+                    let line = &lines[index];
+                    items.push(SemanticElement::ListItem {
+                        common: line.common.clone(),
+                        children: vec![SemanticElement::Paragraph {
+                            common: line.common.clone(),
+                            text: item_text,
+                            font: line.font.clone(),
+                        }],
+                        text: None,
+                    });
+                    index += 1;
+                }
+                let common = common_for_lines(&lines[start..index]);
+                document.elements.push(SemanticElement::List { common, style, items });
+                continue;
+            }
+
+            let start = index;
+            index += 1;
+            while index < lines.len() && joins_paragraph(&lines[index - 1], &lines[index]) {
+                index += 1;
+            }
+            let group = &lines[start..index];
+            let common = common_for_lines(group);
+            let text = group
+                .iter()
+                .map(|line| line.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" ");
+            let font = group[0].font.clone();
+            if let Some(level) = heading_level(group) {
+                document.elements.push(SemanticElement::Heading {
+                    common,
+                    level,
+                    text,
+                    font,
+                });
+            } else {
+                document
+                    .elements
+                    .push(SemanticElement::Paragraph { common, text, font });
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct TextLine {
+    common: ElementCommon,
+    text: String,
+    font: FontInfo,
+}
+
+fn text_lines(page: &Page) -> Vec<TextLine> {
+    let mut lines = Vec::new();
+    for chunk in page.chunks.iter().filter_map(|chunk| match chunk {
+        ParserChunk::Text(text) => Some(text),
+        _ => None,
+    }) {
+        if let Some(line) = lines
+            .iter_mut()
+            .find(|line: &&mut TextLine| same_line(&line.common.bounds, &chunk.bounds))
+        {
+            line.text.push(' ');
+            line.text.push_str(&chunk.text);
+            line.common.bounds = union_bounds(line.common.bounds, chunk.bounds);
+        } else {
+            lines.push(TextLine {
+                common: ElementCommon {
+                    id: None,
+                    page_index: chunk.page_index,
+                    bounds: chunk.bounds,
+                    pdfua_tag: None,
+                },
+                text: chunk.text.clone(),
+                font: chunk.font.clone(),
+            });
+        }
+    }
+    lines.sort_by(|left, right| {
+        right
+            .common
+            .bounds
+            .top
+            .total_cmp(&left.common.bounds.top)
+            .then_with(|| left.common.bounds.left.total_cmp(&right.common.bounds.left))
+    });
+    lines
+}
+
+fn same_line(left: &BoundingBox, right: &BoundingBox) -> bool {
+    let tolerance = (left.top - left.bottom).max(right.top - right.bottom) * 0.5;
+    ((left.top + left.bottom) - (right.top + right.bottom)).abs() <= tolerance
+}
+
+fn joins_paragraph(previous: &TextLine, current: &TextLine) -> bool {
+    let gap = previous.common.bounds.bottom - current.common.bounds.top;
+    previous.common.page_index == current.common.page_index
+        && previous.font.size == current.font.size
+        && (0.0..=previous.font.size.unwrap_or(12.0) * 2.5).contains(&gap)
+}
+
+fn heading_level(lines: &[TextLine]) -> Option<u8> {
+    let size = lines.first()?.font.size?;
+    (size >= 14.0).then(|| ((24.0 - size) / 2.0).round().clamp(1.0, 6.0) as u8)
+}
+
+fn list_marker(text: &str) -> Option<(ListStyle, String)> {
+    let trimmed = text.trim_start();
+    let (style, rest) = if let Some(rest) = trimmed.strip_prefix("- ").or_else(|| trimmed.strip_prefix("* ")) {
+        (ListStyle::Unordered, rest)
+    } else {
+        let digits = trimmed.bytes().take_while(u8::is_ascii_digit).count();
+        if digits == 0
+            || trimmed.as_bytes().get(digits) != Some(&b'.')
+            || trimmed.as_bytes().get(digits + 1) != Some(&b' ')
+        {
+            return None;
+        }
+        (ListStyle::Ordered, &trimmed[digits + 2..])
+    };
+    (!rest.is_empty()).then(|| (style, rest.to_owned()))
+}
+
+fn common_for_lines(lines: &[TextLine]) -> ElementCommon {
+    let first = &lines[0].common;
+    ElementCommon {
+        id: None,
+        page_index: first.page_index,
+        bounds: lines
+            .iter()
+            .skip(1)
+            .fold(first.bounds, |bounds, line| union_bounds(bounds, line.common.bounds)),
+        pdfua_tag: None,
+    }
+}
+
+fn union_bounds(left: BoundingBox, right: BoundingBox) -> BoundingBox {
+    BoundingBox {
+        left: left.left.min(right.left),
+        bottom: left.bottom.min(right.bottom),
+        right: left.right.max(right.right),
+        top: left.top.max(right.top),
+    }
 }
 
 fn read_metadata(pdf: &PdfDocument) -> DocumentMetadata {
@@ -590,6 +755,62 @@ mod tests {
         assert_eq!(document.metadata.author.as_deref(), Some("anonymous"));
         assert_eq!(document.pages[0].index, 0);
         assert_eq!(document.pages[0].chunks.len(), 1);
+    }
+
+    #[test]
+    fn reconstructs_heading_paragraph_and_unordered_list() {
+        let text = |text: &str, top: f64, size: f64| {
+            ParserChunk::Text(TextChunk {
+                page_index: 0,
+                bounds: BoundingBox {
+                    left: 50.0,
+                    bottom: top - 10.0,
+                    right: 250.0,
+                    top,
+                },
+                text: text.into(),
+                glyph_order: Vec::new(),
+                character_spacing: None,
+                font: FontInfo {
+                    size: Some(size),
+                    ..Default::default()
+                },
+                parser_order: 0,
+                structure_id: None,
+                pdfua_tag: None,
+            })
+        };
+        let mut document = Document {
+            file_name: "semantic.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 300.0,
+                height: 800.0,
+                chunks: vec![
+                    text("Title", 700.0, 18.0),
+                    text("First paragraph line", 650.0, 10.0),
+                    text("continues here", 635.0, 10.0),
+                    text("- one", 580.0, 10.0),
+                    text("- two", 565.0, 10.0),
+                ],
+            }],
+            elements: Vec::new(),
+        };
+
+        reconstruct_semantics(&mut document);
+
+        assert!(matches!(
+            document.elements[0],
+            SemanticElement::Heading { level: 3, .. }
+        ));
+        assert!(
+            matches!(document.elements[1], SemanticElement::Paragraph { ref text, .. } if text == "First paragraph line continues here")
+        );
+        assert!(
+            matches!(document.elements[2], SemanticElement::List { style: ListStyle::Unordered, ref items, .. } if items.len() == 2)
+        );
     }
 
     #[test]

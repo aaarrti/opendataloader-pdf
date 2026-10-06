@@ -135,7 +135,7 @@ finished modules.
   text coordinates beyond page bounds, so those filters remain no-ops until
   later parser data makes them observable.
 
-- [ ] **S1 — Reconstruct text lines, paragraphs, headings, and lists.**
+- [x] **S1 — Reconstruct text lines, paragraphs, headings, and lists.**
   **Depends on:** M1, C1. **Parallel:** yes, with T1 and I1 after the normalized
   chunk contract is fixed. Implement line grouping, paragraph grouping,
   heading detection and levels, ordered/unordered lists, nested list items,
@@ -143,7 +143,10 @@ finished modules.
   data, geometry, and parent/child relationships. **Acceptance:** committed
   Java-generated references exercise each available text semantic; Rust tests
   compare exact node kinds, contents, IDs, page numbers, bounds, nesting, and
-  order; unsupported structures are not fabricated.
+  order; unsupported structures are not fabricated. Implemented deterministic
+  reconstruction in `reconstruct_semantics`; nested and cross-page list
+  joining remain deferred until the parser exposes reliable indentation and
+  line geometry.
 
 - [ ] **T1 — Reconstruct tables and table cells.** **Depends on:** M1, C1.
   **Parallel:** yes, with S1 and I1 after the normalized chunk contract is

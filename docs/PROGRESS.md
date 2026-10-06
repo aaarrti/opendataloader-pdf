@@ -19,3 +19,10 @@ empty, tiny, out-of-page, page-background, whitespace, NUL, and U+FFFD content;
 sanitization remains disabled by default. Added focused and invalid-character
 fixture tests. `cargo test -p opendataloader_core` and `cargo check --workspace`
 pass.
+
+2026-10-06 — Completed S1. Added deterministic semantic reconstruction for
+positioned text lines, paragraphs, font-size headings, and ordered/unordered
+lists, and wired it into `parse_pdf`. Added focused semantic tests;
+nested/cross-page list joining remains deferred because the current parser
+boundary does not expose reliable indentation and line geometry. `cargo test
+-p opendataloader_core` and `cargo check --workspace` pass.
