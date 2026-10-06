@@ -78,7 +78,7 @@ finished modules.
 
 ## Implementation tasks
 
-- [ ] **F1 — Create committed Java oracle fixtures.** **Depends on:** none.
+- [x] **F1 — Create committed Java oracle fixtures.** **Depends on:** none.
   **Parallel:** no; complete before implementation tasks that assert parity.
   Inspect the committed PDF corpus and the original local Java flow. Reuse
   existing PDFs where they exercise a required behavior. Generate and commit

@@ -1,0 +1,31 @@
+{
+  "file name" : "invalid-chars.pdf",
+  "number of pages" : 1,
+  "author" : "anonymous",
+  "title" : "untitled",
+  "creation date" : "D:20260526171228+09'00'",
+  "modification date" : "D:20260526171228+09'00'",
+  "kids" : [ {
+    "type" : "heading",
+    "pdfua_tag" : "H1",
+    "id" : 1,
+    "level" : "Doctitle",
+    "page number" : 1,
+    "bounding box" : [ 72.0, 766.698, 378.11, 783.358 ],
+    "heading level" : 1,
+    "font" : "Helvetica-Bold",
+    "font size" : 14.0,
+    "text color" : "[0.0]",
+    "content" : "Invalid-character fixture (ToUnicode U+FFFD)"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 2,
+    "page number" : 1,
+    "bounding box" : [ 72.0, 689.19, 446.472, 743.062 ],
+    "font" : "Helvetica",
+    "font size" : 12.0,
+    "text color" : "[0.0]",
+    "content" : " hars  ,  , below are mapped to U+FFFD by the ToUnicode  Map. Test line: (three unmappable glyphs) Normal text: hello world 123"
+  } ]
+}

@@ -1,0 +1,17 @@
+{
+  "file name" : "chinese_scan.pdf",
+  "number of pages" : 1,
+  "author" : "anonymous",
+  "title" : "untitled",
+  "creation date" : "D:20260120114430+09'00'",
+  "modification date" : "D:20260120114430+09'00'",
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 595.276, 841.89 ],
+    "alt_source" : "missing",
+    "source" : "images/imageFile1.png"
+  } ]
+}
