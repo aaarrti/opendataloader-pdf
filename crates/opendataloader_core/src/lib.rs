@@ -1,5 +1,6 @@
 mod cleanup;
 mod images;
+mod json;
 mod model;
 mod parser;
 mod reading_order;
@@ -7,6 +8,7 @@ mod semantics;
 
 pub use cleanup::normalize_page_chunks;
 pub use images::write_external_images;
+pub use json::serialize_document;
 pub use model::*;
 pub use reading_order::ReadingOrder;
 pub use semantics::reconstruct_semantics;

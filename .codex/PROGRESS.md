@@ -57,3 +57,10 @@ until the parser preserves reliable per-chunk coordinates. `cargo test
 `model`, `parser`, `cleanup`, `semantics`, and `images` modules, leaving
 `lib.rs` without a centralized test module. `cargo fmt --all`, `cargo test
 -p opendataloader_core` (14 passed), and `cargo check --workspace` pass.
+
+2026-10-06 — Completed J1. Added serde_json serialization for the specified
+document root and semantic element shapes, including mandatory metadata nulls,
+canonical PDF/UA tags, rounded bounds, image references, nested lists/tables,
+formulas, captions, and TOC nodes. Added focused serializer tests. `cargo fmt
+--all -- --check`, `cargo check --workspace`, and `cargo test
+-p opendataloader_core` (16 passed) pass; existing C-library warnings remain.

@@ -215,7 +215,7 @@ finished modules.
   `cleanup`, `semantics`, and `images` inline test modules; `lib.rs` now has
   no centralized unit-test module.
 
-- [ ] **J1 — Serialize the specified JSON document and elements.**
+- [x] **J1 — Serialize the specified JSON document and elements.**
   **Depends on:** R1, I1. **Parallel:** yes, with D1. Implement the exact root
   keys, metadata nulls, property names, type strings, common fields,
   kind-specific fields, child arrays, omission rules, and external image
@@ -223,7 +223,11 @@ finished modules.
   omitted, and empty fields as the Java serializers do. **Acceptance:** compare
   JSON structurally to committed Java references, ignoring object-key order
   only; compare arrays, values, nulls, and omitted fields exactly; verify the
-  `lorem.json` baseline and image-bearing output.
+  `lorem.json` baseline and image-bearing output. Implemented in
+  `crates/opendataloader_core/src/json.rs` with serde_json-backed root,
+  common-field, text, image, list, table, formula, caption, and TOC serializers;
+  focused tests cover mandatory metadata nulls, rounded geometry, image
+  references, and nested table rows/cells.
 
 - [ ] **D1 — Render the specified Markdown document.** **Depends on:** R1, I1.
   **Parallel:** yes, with J1. Implement heading levels, paragraphs/text,

@@ -688,6 +688,7 @@ dependencies = [
  "lopdf",
  "png",
  "rayon",
+ "serde_json",
 ]
 
 [[package]]
