@@ -64,3 +64,11 @@ canonical PDF/UA tags, rounded bounds, image references, nested lists/tables,
 formulas, captions, and TOC nodes. Added focused serializer tests. `cargo fmt
 --all -- --check`, `cargo check --workspace`, and `cargo test
 -p opendataloader_core` (16 passed) pass; existing C-library warnings remain.
+
+2026-10-06 — Completed D1. Added `serialize_markdown` with heading, text,
+formula, recursive list, pipe-table, and external/embedded image rendering,
+Java-compatible text escaping, destination sanitization, and exact two-LF
+element separators. Added focused renderer tests; `cargo fmt --all -- --check`,
+`cargo test -p opendataloader_core` (18 passed), and `cargo check --workspace`
+pass. Existing C-library warnings remain; full output orchestration is deferred
+to O1.

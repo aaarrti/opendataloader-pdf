@@ -229,7 +229,7 @@ finished modules.
   focused tests cover mandatory metadata nulls, rounded geometry, image
   references, and nested table rows/cells.
 
-- [ ] **D1 — Render the specified Markdown document.** **Depends on:** R1, I1.
+- [x] **D1 — Render the specified Markdown document.** **Depends on:** R1, I1.
   **Parallel:** yes, with J1. Implement heading levels, paragraphs/text,
   recursive lists, pipe tables, formulas, images, text escaping, table-cell
   line-break behavior, destination sanitization, and exact two-LF separators.
@@ -237,7 +237,11 @@ finished modules.
   UTF-8 bytes against committed Java references, including final line feeds;
   verify images use the same destination as JSON and HTML-in-Markdown behavior
   is included only if the selected core implementation supports that specified
-  mode.
+  mode. Implemented in `crates/opendataloader_core/src/markdown.rs` with
+  focused tests for headings, text escaping, formulas, lists, tables, images,
+  destination sanitization, and exact two-LF separators. Full fixture parity
+  and HTML-in-Markdown mode remain deferred until the conversion orchestrator
+  and parser expose the required output configuration.
 
 - [ ] **O1 — Connect the local conversion pipeline.** **Depends on:** P1, C1,
   S1, T1, I1, R1, J1, D1. **Parallel:** no. Replace the `convert` stub in
