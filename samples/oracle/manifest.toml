@@ -1,4 +1,6 @@
 schema = "pdf-json-markdown-reimplementation-fixtures-v1"
+# These fields document oracle generation only. Rust builds and tests use the
+# committed PDFs and outputs below and do not require Java, Maven, or target/.
 java_version = "OpenJDK 25.0.2 (GraalVM Community)"
 java_artifact = "java/opendataloader-pdf-cli/target/opendataloader-pdf-cli-2.5.13-SNAPSHOT.jar"
 build_command = "mvn -f java/pom.xml -pl opendataloader-pdf-cli -am package -DskipTests"

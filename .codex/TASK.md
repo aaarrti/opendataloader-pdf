@@ -270,7 +270,7 @@ finished modules.
   committed fixtures, focused tests, and explicit blockers for missing parser
   evidence or deferred Base64 output.
 
-- [ ] **X1 — Make the completed Rust path self-contained and traceable.**
+- [x] **X1 — Make the completed Rust path self-contained and traceable.**
   **Depends on:** V1. **Parallel:** no. Remove accidental runtime, build, or
   test dependencies on Java sources and generated decompilation output.
   Preserve the behavior needed to understand and maintain the Rust path in
@@ -281,7 +281,10 @@ finished modules.
   after Java source directories are unavailable; every major stage is
   traceable to the spec and a fixture; `git grep` finds no required runtime
   Java-source path or generated `target/` artifact; all new fixtures and docs
-  are committed.
+  are committed. Implemented the Rust stage-to-specification and fixture map,
+  documented the self-contained crate pipeline, and verified that Rust builds
+  and tests do not require Java sources, Maven, generated JARs, or
+  decompilation output.
 
 ## Out of scope for this round; planned for later
 

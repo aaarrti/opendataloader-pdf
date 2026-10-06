@@ -86,3 +86,9 @@ to Rust entry points, committed fixtures, focused tests, and concrete parity
 blockers. Deferred gaps remain explicit for truncated/XMP fixtures, exact
 XY-Cut++ parity, unsupported semantic inputs, isolated image-failure fixtures,
 and Base64 images.
+
+2026-10-06 — Completed X1. Added a Rust stage-to-specification and fixture map
+to `docs/specs/pdf-json-markdown-reimplementation.md` and documented the
+self-contained pipeline in `crates/opendataloader_core/src/lib.rs`. Verified
+that Rust tests and builds use committed samples and do not require Java
+sources, Maven, generated JARs, or decompilation output.

@@ -55,6 +55,28 @@ clarification:
 | Embedded image data URIs | `java/opendataloader-pdf-core/src/main/java/org/opendataloader/pdf/utils/Base64ImageUtils.java` |
 | Existing end-to-end and serializer behavior | `java/opendataloader-pdf-core/src/test/java/org/opendataloader/pdf/` |
 
+## Rust implementation map
+
+The Rust path is self-contained. It uses the Java implementation only to
+generate the committed oracle files described in
+[`samples/oracle/manifest.toml`](../../samples/oracle/manifest.toml). The
+following table maps each local stage to this specification and its fixture
+coverage.
+
+| Stage | Rust entry point | Specification section | Oracle coverage |
+| --- | --- | --- | --- |
+| Parse and validate | `crates/opendataloader_core/src/parser.rs::parse_document` | [Input validation and document metadata](#input-validation-and-document-metadata) | `lorem`, `multipage`, `raster`, `invalid-input`, `password-protected` |
+| Clean page chunks | `crates/opendataloader_core/src/cleanup.rs::normalize_page_chunks` | [Extraction stages](#extraction-stages) | `sanitization`, `invalid-chars` |
+| Reconstruct semantics | `crates/opendataloader_core/src/semantics.rs::reconstruct_semantics` | [Supported parser and semantic elements](#supported-parser-and-semantic-elements) | `lorem`, `multipage`, `table` |
+| Order and assign IDs | `crates/opendataloader_core/src/reading_order.rs::apply` | [Reading order](#reading-order) | `multipage` |
+| Write external images | `crates/opendataloader_core/src/images.rs::write_external_images` | [Image output](#image-output) | `raster` |
+| Serialize JSON | `crates/opendataloader_core/src/json.rs::serialize_document` | [JSON output](#json-output) | `lorem`, `multipage`, `table`, `raster` |
+| Serialize Markdown | `crates/opendataloader_core/src/markdown.rs::serialize_markdown` | [Markdown output](#markdown-output) | `lorem`, `multipage`, `table`, `raster`, `sanitization` |
+| Orchestrate conversion | `crates/opendataloader_core/src/lib.rs::convert` | [Errors and partial output](#errors-and-partial-output) | `raster` |
+
+Rust tests read only committed PDFs and oracle outputs. They do not require
+Java sources, Maven, generated JARs, decompilation output, or network access.
+
 ## Processing model
 
 Treat the PDF as a sequence of pages. Preserve the original page count even
@@ -500,6 +522,11 @@ Do not run independent extraction passes for JSON and Markdown.
 
 ## Reference fixtures
 
+The commands in this section regenerate Java oracle data only. They are not
+required to build or test the Rust implementation. Rust tests use the
+committed files under `samples/` and do not read Java build or decompilation
+directories.
+
 Use the committed `samples/pdf/lorem.pdf` input with
 `samples/json/lorem.json` and `samples/markdown/lorem.md`. The JSON fixture is
 the Java output. The Markdown fixture has also been confirmed against the Java
@@ -601,8 +628,9 @@ exact-version behavior. CFR 0.152 was downloaded from its official GitHub
 release and checksum-verified. The exact parser, PDF model, WCAG algorithm,
 WCAG validation, and validation-model JARs were decompiled under the ignored
 `target/decompiled/` directory. Use the Just recipes in the repository root to
-repeat this inspection. Do not add generated decompilation output to Git or
-present uninspected transitive-library behavior as an exact Rust contract.
+repeat this optional oracle inspection. Do not add generated decompilation
+output to Git or present uninspected transitive-library behavior as an exact
+Rust contract.
 
 ## Java source map
 

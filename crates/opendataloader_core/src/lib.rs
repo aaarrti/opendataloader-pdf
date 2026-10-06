@@ -1,3 +1,12 @@
+//! Local PDF extraction pipeline.
+//!
+//! The stage order follows the extraction stages in
+//! `docs/specs/pdf-json-markdown-reimplementation.md`: parse, clean, rebuild
+//! semantics, order and assign IDs, then serialize or write images. The
+//! committed oracle and stage-to-fixture mapping live in
+//! `samples/oracle/manifest.toml`; this crate does not invoke the Java
+//! reference implementation.
+
 mod cleanup;
 mod images;
 mod json;
