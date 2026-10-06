@@ -94,3 +94,4 @@ scripts/generate-test-fixtures.py
 # Added by cargo
 
 /target
+.codebase-memory/
