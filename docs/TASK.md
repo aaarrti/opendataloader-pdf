@@ -120,7 +120,7 @@ finished modules.
   produce the specified distinct error categories; raster-only input produces
   no recognized text.
 
-- [ ] **C1 — Apply page-local cleanup and default content filters.**
+- [x] **C1 — Apply page-local cleanup and default content filters.**
   **Depends on:** P1. **Parallel:** yes, with I1; S1 and T1 may begin once the
   normalized chunk contract is fixed. Implement the specified duplicate,
   decoration, null, tiny, out-of-page, hidden optional-content, background,
@@ -129,7 +129,11 @@ finished modules.
   **Acceptance:** fixture-backed tests demonstrate each enabled default filter
   and text cleanup behavior; disabled hidden-text detection and
   sanitization do not alter content; repeated conversions produce identical
-  normalized chunks.
+  normalized chunks. Implemented in `crates/opendataloader_core/src/lib.rs`
+  with fixture-backed and focused cleanup tests. The current parser boundary
+  does not expose optional-content visibility, image decoration metadata, or
+  text coordinates beyond page bounds, so those filters remain no-ops until
+  later parser data makes them observable.
 
 - [ ] **S1 — Reconstruct text lines, paragraphs, headings, and lists.**
   **Depends on:** M1, C1. **Parallel:** yes, with T1 and I1 after the normalized
