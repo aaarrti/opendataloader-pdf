@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::path::PathBuf;
 
-use opendataloader_core as odl;
+use opendataloader_core::{convert_with_options, ConversionOptions};
 
 #[derive(Debug, Parser)]
 struct CliArg {
@@ -19,12 +19,15 @@ struct CliArg {
 
 fn main() -> anyhow::Result<()> {
     let cli_args = CliArg::try_parse()?;
-    odl::convert(
-        cli_args.input_paths,
-        cli_args.out_dir,
-        cli_args.json,
-        cli_args.markdown,
-        cli_args.image,
+    convert_with_options(
+        &cli_args.input_paths,
+        &cli_args.out_dir,
+        ConversionOptions {
+            json_enabled: cli_args.json,
+            markdown_enabled: cli_args.markdown,
+            image_output_enabled: cli_args.image,
+            ..ConversionOptions::default()
+        },
     )?;
     Ok(())
 }

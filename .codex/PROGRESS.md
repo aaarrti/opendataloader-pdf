@@ -99,3 +99,9 @@ enabled; single-PDF conversion remains serial. Added colocated tests comparing
 serial and parallel JSON, Markdown, and image outputs plus enabled single-PDF
 conversion. `cargo fmt --all`, `cargo test -p opendataloader_core` (20 passed),
 and `cargo check --workspace` pass; existing C-library warnings remain.
+
+2026-10-06 — Completed C2. Moved JSON, Markdown, and external-image output
+switches into `ConversionOptions` alongside `parallel`; updated the core batch
+conversion path, CLI caller, and colocated tests. `cargo fmt --all`,
+`cargo test --workspace` (20 core tests passed), and `cargo check --workspace`
+pass; existing C-library warnings remain.

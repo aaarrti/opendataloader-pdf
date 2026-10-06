@@ -12,9 +12,10 @@ defines acceptance criteria for each task.
   after the listed prerequisites are complete.
 - Tasks marked **parallel** can run at the same time after their prerequisites
   are complete. Agree on shared Rust data types before parallel work starts.
-- Keep implementation and Rust tests in `crates/opendataloader_core`. Do not
-  change the CLI, C library, Python package, Java implementation, or the
-  specification as part of this plan.
+- Keep PDF parsing, extraction, and output generation in
+  `crates/opendataloader_core`. Change the CLI, C library, or Python package
+  only in its explicit task; do not duplicate conversion logic in an interface
+  package.
 - Every implemented behavior must have a test using a PDF input and expected
   output produced by the original Java implementation. Commit each input,
   oracle output, and manifest needed by the test. Do not generate expected
@@ -70,6 +71,12 @@ flowchart TD
     O1 --> V1["V1: Parity audit"]
     V1 --> X1["X1: Self-contained cleanup"]
     X1 --> B1["B1: Optional Rayon PDF batch processing"]
+    B1 --> C2["C2: Consolidate conversion options"]
+    C2 --> C3["C3: Extract per-PDF conversion function"]
+    C3 --> C4["C4: Accept generic path-like inputs"]
+    C4 --> CLI1["CLI1: Define and implement the local CLI"]
+    C4 --> ABI1["ABI1: Define and implement the C ABI"]
+    ABI1 --> PY1["PY1: Complete the Python package"]
 ```
 
 `I1` depends on the stable model and parser but can run alongside `C1`, `S1`,
@@ -306,19 +313,93 @@ finished modules.
   colocated tests for serial/parallel output equivalence and enabled
   single-PDF conversion.
 
-## Out of scope for this round; planned for later
+- [x] **C2 — Put conversion switches in `ConversionOptions`.** **Depends on:**
+  B1. **Parallel:** no. Add `json_enabled`, `markdown_enabled`, and
+  `image_output_enabled` as boolean fields on `ConversionOptions`, alongside
+  `parallel`. Make the options-based core conversion function read all four
+  flags from that struct instead of taking the output flags as separate
+  parameters. Update in-repository Rust callers and colocated tests to build
+  `ConversionOptions`. Preserve existing output defaults and behavior; do not
+  add or redesign CLI, Python, or C-library options. **Acceptance:** the core
+  options type contains all four flags; every options-based conversion path
+  uses those fields; existing Java fixture outputs remain unchanged for the
+  same option values; core tests pass without `.unwrap()`.
+  Implemented all four switches on `ConversionOptions`, updated the core batch
+  path and CLI caller to use the struct, and updated colocated conversion tests.
 
-Do not implement these items while completing the unchecked tasks above.
+- [ ] **C3 — Extract the per-PDF conversion closure into a function.**
+  **Depends on:** B1, C2. **Parallel:** no. Move the per-PDF conversion
+  closure inside the batch conversion flow into a named `convert_one` function
+  in the appropriate core module. Pass its inputs and conversion options
+  explicitly instead of capturing them from the surrounding function. Use the
+  same function for serial and Rayon batch paths. Preserve output naming,
+  per-input error context, and conversion behavior. **Acceptance:** the batch
+  orchestration contains no per-PDF conversion closure; both execution paths
+  call `convert_one`; its tests are in the same source file; committed Java
+  fixture outputs remain unchanged; core tests pass without `.unwrap()`.
 
-- Refactor the direct Java-to-Rust mapping into idiomatic, layered Rust or
-  remove object-oriented shapes that were retained for one-to-one parity.
-- Remove or reduce unsafe code after the initial behavior is correct.
-- Add page-level parallel processing or general concurrent conversion beyond
-  the per-PDF Rayon option tracked in B1.
-- Improve throughput, memory use, allocations, or image-processing
-  performance.
-- Add the Python package or Python bindings.
-- Add or complete the CLI contract and command-line behavior.
-- Add or complete the C ABI and its public API contract.
-- Add hybrid or remote processing, OCR, ML models, PDF/A validation,
-  linearization-specific behavior, or other deferred formats and features.
+- [ ] **CLI1 — Define and implement the local conversion CLI.** **Depends on:**
+  C2, C3, C4. **Parallel:** no. Complete these actions in
+  `crates/opendataloader_cli`:
+  1. Document the contract for `--input-paths`, `--out-dir`, `--json`,
+     `--markdown`, `--image`, and `--parallel`. Accept one or more local PDF
+     paths and do not recursively traverse directories.
+  2. Require at least one of `--json` or `--markdown`; reject `--image` when
+     neither format is selected. Keep `--parallel` opt-in and apply it only to
+     batches with multiple PDFs.
+  3. Pass the selected output and parallel settings through `ConversionOptions`
+     to the core. Do not duplicate PDF parsing or output generation in the CLI.
+  4. Document output locations, defaults, input validation, and failure
+     behavior in CLI help and project documentation. Return a nonzero process
+     status for invalid arguments or conversion failures, with the relevant
+     input path in the error context.
+  **Acceptance:** `--help` describes every supported flag and default; tests
+  cover missing and invalid arguments, one and multiple PDF paths, each output
+  selection, image output, opt-in parallel conversion, and a conversion error;
+  end-to-end outputs match committed references; CLI tests remain beside the
+  argument/parsing functions they test.
+
+- [ ] **ABI1 — Define and implement the local batch C ABI.** **Depends on:**
+  B1, C2, C3, C4. **Parallel:** yes, with CLI1 after the core options and batch
+  conversion tasks are complete. Complete these actions in
+  `crates/opendataloader_clib`:
+  1. Add a public C header generated from the Rust exports with `cbindgen`, and
+     document the ABI contract, ownership, string encoding, return values, and
+     error lifetime.
+  2. Complete the existing `odl_convert` entry point as a file-writing batch
+     operation. Accept an array of NUL-terminated UTF-8 PDF paths, a path
+     count, an output directory, and an options bitmask. Do not add a Java or
+     GraalVM isolate parameter.
+  3. Define stable bit values for JSON, Markdown, external image files, and
+     opt-in Rayon processing. Map those values to `ConversionOptions` and call
+     the core conversion path without repeating extraction logic.
+  4. Define stable success and error status values. Add a last-error accessor
+     that returns UTF-8 error detail valid until the next ABI call on the same
+     thread. Validate null pointers, path counts, invalid strings, empty or
+     unsupported option masks, and invalid input paths. Prevent Rust panics
+     from unwinding across the C boundary.
+  **Acceptance:** the public header matches the exported Rust signatures and
+  constants; C examples compile against the header and link to the library;
+  tests cover success, invalid arguments, missing/corrupt PDFs, output errors,
+  image output, and parallel batches; errors return stable codes and useful
+  last-error text; generated JSON, Markdown, and image files match committed
+  references; Rust unit tests are colocated with their ABI functions.
+
+- [ ] **PY1 — Complete the Python file-writing package.** **Depends on:** ABI1.
+  **Parallel:** no. Complete `packages/opendataloader` using its existing
+  Python API and `ctypes` library loader. Keep PDF parsing and conversion in
+  the native library; do not add PyO3 or another conversion implementation.
+  Implement `convert(input_path, output_dir, format=None) -> None` for one
+  local PDF path or a list of paths. Accept `str` and `Path` inputs, reject
+  directory inputs, and do not recurse. Create the output directory when
+  needed. Support JSON and Markdown output selection, with JSON as the default
+  when `format` is omitted. Write requested files through the native file-
+  writing API and return `None`. Include the native library in the built
+  package and preserve the documented environment-variable override for an
+  explicit library path. Map native load and conversion failures to useful
+  Python exceptions with the input path and native error detail. **Acceptance:**
+  pytest tests cover single and multiple path inputs, JSON and Markdown
+  selection, default JSON, generated files compared with committed Java
+  references, directory and invalid-format rejection, missing or malformed
+  PDFs, output errors, and native library load/conversion errors; a built and
+  installed package converts a committed PDF without Java or network access.

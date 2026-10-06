@@ -13,3 +13,8 @@ opendataloader_core = { path = "../opendataloader_core"}
 anyhow = "1.0.104"
 # Optional: Useful for generating C header (.h) files automatically
 cbindgen = "0.28" 
+
+[profile.release]
+lto = true
+incremental = true
+opt-level = 3

@@ -31,46 +31,31 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Convert local PDFs using the extraction stages exposed by this crate.
-pub fn convert(
-    pdf_paths: Vec<PathBuf>,
-    output_dir: PathBuf,
-    json_enabled: bool,
-    markdown_enabled: bool,
-    image_output_enabled: bool,
-) -> anyhow::Result<()> {
-    convert_with_options(
-        pdf_paths,
-        output_dir,
-        json_enabled,
-        markdown_enabled,
-        image_output_enabled,
-        ConversionOptions::default(),
-    )
-}
-
 /// Options for the core conversion pipeline.
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ConversionOptions {
+    /// Write JSON output files.
+    pub json_enabled: bool,
+    /// Write Markdown output files.
+    pub markdown_enabled: bool,
+    /// Write external image files.
+    pub image_output_enabled: bool,
     /// Process multiple PDFs concurrently with Rayon.
     pub parallel: bool,
 }
 
 /// Convert local PDFs with explicit core conversion options.
 pub fn convert_with_options(
-    pdf_paths: Vec<PathBuf>,
-    output_dir: PathBuf,
-    json_enabled: bool,
-    markdown_enabled: bool,
-    image_output_enabled: bool,
+    pdf_paths: &[PathBuf],
+    output_dir: &PathBuf,
     options: ConversionOptions,
 ) -> anyhow::Result<()> {
-    if !json_enabled && !markdown_enabled {
+    if !options.json_enabled && !options.markdown_enabled {
         return Ok(());
     }
     fs::create_dir_all(&output_dir).with_context(|| format!("create output directory {}", output_dir.display()))?;
 
-    let convert_one = |pdf_path: PathBuf| -> anyhow::Result<()> {
+    let convert_one = |pdf_path: &PathBuf| -> anyhow::Result<()> {
         let mut document = parse_pdf(&pdf_path)
             .map_err(|error| anyhow::anyhow!(error))
             .with_context(|| format!("parse PDF {}", pdf_path.display()))?;
@@ -79,7 +64,7 @@ pub fn convert_with_options(
             .and_then(|value| value.to_str())
             .ok_or_else(|| anyhow::anyhow!("PDF has no valid file name: {}", pdf_path.display()))?;
 
-        if image_output_enabled {
+        if options.image_output_enabled {
             write_external_images(
                 &pdf_path,
                 &output_dir.join(format!("{stem}_images")),
@@ -87,11 +72,11 @@ pub fn convert_with_options(
                 "png",
             )?;
         }
-        if json_enabled {
+        if options.json_enabled {
             fs::write(output_dir.join(format!("{stem}.json")), serialize_document(&document)?)
                 .with_context(|| format!("write JSON output for {}", pdf_path.display()))?;
         }
-        if markdown_enabled {
+        if options.markdown_enabled {
             fs::write(output_dir.join(format!("{stem}.md")), serialize_markdown(&document)?)
                 .with_context(|| format!("write Markdown output for {}", pdf_path.display()))?;
         }
@@ -128,7 +113,16 @@ mod tests {
         let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/o1-test");
         fs::create_dir_all(&output_dir)?;
         let source = fs::read(&pdf_path)?;
-        convert(vec![pdf_path.clone()], output_dir.clone(), true, true, true)?;
+        convert_with_options(
+            vec![pdf_path.clone()],
+            output_dir.clone(),
+            ConversionOptions {
+                json_enabled: true,
+                markdown_enabled: true,
+                image_output_enabled: true,
+                ..ConversionOptions::default()
+            },
+        )?;
 
         assert!(output_dir.join("chinese_scan.json").is_file());
         assert!(output_dir.join("chinese_scan.md").is_file());
@@ -166,20 +160,25 @@ mod tests {
         fs::copy(&source_pdf, &first_pdf)?;
         fs::copy(&source_pdf, &second_pdf)?;
 
-        convert(
+        convert_with_options(
             vec![first_pdf.clone(), second_pdf.clone()],
             sequential_dir.clone(),
-            true,
-            true,
-            true,
+            ConversionOptions {
+                json_enabled: true,
+                markdown_enabled: true,
+                image_output_enabled: true,
+                ..ConversionOptions::default()
+            },
         )?;
         convert_with_options(
             vec![first_pdf.clone(), second_pdf.clone()],
             parallel_dir.clone(),
-            true,
-            true,
-            true,
-            ConversionOptions { parallel: true },
+            ConversionOptions {
+                json_enabled: true,
+                markdown_enabled: true,
+                image_output_enabled: true,
+                parallel: true,
+            },
         )?;
 
         for stem in ["first", "second"] {
@@ -201,10 +200,11 @@ mod tests {
         convert_with_options(
             vec![first_pdf],
             single_dir.clone(),
-            true,
-            false,
-            false,
-            ConversionOptions { parallel: true },
+            ConversionOptions {
+                json_enabled: true,
+                parallel: true,
+                ..ConversionOptions::default()
+            },
         )?;
         assert!(single_dir.join("first.json").is_file());
         Ok(())
