@@ -59,7 +59,7 @@ clarification:
 
 The Rust path is self-contained. It uses the Java implementation only to
 generate the committed oracle files described in
-[`samples/oracle/manifest.toml`](../../samples/oracle/manifest.toml). The
+[`data/oracle/manifest.toml`](../../data/oracle/manifest.toml). The
 following table maps each local stage to this specification and its fixture
 coverage.
 
@@ -524,20 +524,20 @@ Do not run independent extraction passes for JSON and Markdown.
 
 The commands in this section regenerate Java oracle data only. They are not
 required to build or test the Rust implementation. Rust tests use the
-committed files under `samples/` and do not read Java build or decompilation
+committed files under `data/` and do not read Java build or decompilation
 directories.
 
-Use the committed `samples/pdf/lorem.pdf` input with
-`samples/json/lorem.json` and `samples/markdown/lorem.md`. The JSON fixture is
+Use the committed `data/pdf/lorem.pdf` input with
+`data/json/lorem.json` and `data/markdown/lorem.md`. The JSON fixture is
 the Java output. The Markdown fixture has also been confirmed against the Java
 CLI. From the repository root, regenerate both references with:
 
 ```shell
 mvn -f java/pom.xml -pl opendataloader-pdf-cli -am package -Dmaven.test.skip=true
 java -jar java/opendataloader-pdf-cli/target/opendataloader-pdf-cli-2.5.13-SNAPSHOT.jar \
-  -f json,markdown -q -o target/java-reference samples/pdf/lorem.pdf
-diff -u samples/json/lorem.json target/java-reference/lorem.json
-diff -u samples/markdown/lorem.md target/java-reference/lorem.md
+  -f json,markdown -q -o target/java-reference data/pdf/lorem.pdf
+diff -u data/json/lorem.json target/java-reference/lorem.json
+diff -u data/markdown/lorem.md target/java-reference/lorem.md
 ```
 
 Both `diff` commands currently succeed with no differences.

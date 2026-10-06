@@ -697,13 +697,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "opendataloader_core",
+ "opendataloder_clib",
 ]
 
 [[package]]
 name = "opendataloder_clib"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cbindgen",
  "opendataloader_core",
 ]

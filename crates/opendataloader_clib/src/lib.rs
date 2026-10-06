@@ -2,9 +2,11 @@ use std::cell::RefCell;
 use std::ffi::{CStr, CString, c_uint};
 use std::os::raw::{c_char, c_int};
 use std::panic::{self, AssertUnwindSafe};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use opendataloader_core::{ConversionOptions, convert_with_options};
+use anyhow::Context;
+pub use opendataloader_core::ConversionOptions;
+use opendataloader_core::convert_with_options;
 
 pub const ODL_STATUS_OK: c_int = 0;
 pub const ODL_STATUS_INVALID_ARGUMENT: c_int = 1;
@@ -15,6 +17,13 @@ pub const ODL_OPTION_JSON: c_uint = 1;
 pub const ODL_OPTION_MARKDOWN: c_uint = 2;
 pub const ODL_OPTION_IMAGES: c_uint = 4;
 pub const ODL_OPTION_PARALLEL: c_uint = 8;
+
+/// Convert local PDFs using the same file-writing pipeline as the C ABI.
+pub fn convert_batch(pdf_paths: &[PathBuf], out_dir: &Path, options: ConversionOptions) -> anyhow::Result<()> {
+    let out_dir = out_dir.to_path_buf();
+    convert_with_options(pdf_paths, &out_dir, options)
+        .with_context(|| format!("convert PDF batch to {}", out_dir.display()))
+}
 
 thread_local! {
     static LAST_ERROR: RefCell<Option<CString>> = const { RefCell::new(None) };
@@ -99,9 +108,9 @@ fn convert(
         return Err(AbiError::InvalidArgument("out_dir must not be empty".into()));
     }
 
-    convert_with_options(
+    convert_batch(
         &paths,
-        &PathBuf::from(out_dir),
+        Path::new(out_dir),
         ConversionOptions {
             json_enabled: mode & ODL_OPTION_JSON != 0,
             markdown_enabled: mode & ODL_OPTION_MARKDOWN != 0,
@@ -146,7 +155,7 @@ mod tests {
     fn fixture() -> Result<CString, Box<dyn std::error::Error>> {
         Ok(CString::new(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../samples/pdf/lorem.pdf")
+                .join("../../data/pdf/lorem.pdf")
                 .to_string_lossy()
                 .as_bytes(),
         )?)
@@ -196,7 +205,7 @@ mod tests {
     #[test]
     fn reports_missing_input_and_output_failures() -> Result<(), Box<dyn std::error::Error>> {
         let output = CString::new("target/abi-error-test")?;
-        let missing = CString::new("samples/pdf/missing.pdf")?;
+        let missing = CString::new("data/pdf/missing.pdf")?;
         let paths = [missing.as_ptr()];
         assert_eq!(
             odl_convert(paths.as_ptr(), 1, output.as_ptr(), ODL_OPTION_JSON),
@@ -226,7 +235,7 @@ mod tests {
         let first = fixture()?;
         let second = CString::new(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../samples/pdf/chinese_scan.pdf")
+                .join("../../data/pdf/chinese_scan.pdf")
                 .to_string_lossy()
                 .as_bytes(),
         )?;

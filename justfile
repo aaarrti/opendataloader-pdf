@@ -20,3 +20,32 @@ ralph-loop:
     uv run -m agent_loops.ralph --task .codex/TASK.md --progress .codex/PROGRESS.md \
     --model gpt-5.6-luna --reasoning-effort medium \
     --max-iterations 30
+
+
+
+py_src := "packages/opendataloader/src/opendataloader"
+clib_name := "libopendataloder_clib.so"
+so_name := "libodl.so"
+
+
+
+setup:
+    uv sync --dev
+    uv run dvc pull
+
+
+test:
+    rm -f "{{py_src}}/{{so_name}}"
+    cargo test
+    cp "target/debug/{{clib_name}}" "{{py_src}}/"
+    mv "{{py_src}}/{{clib_name}}" "{{py_src}}/{{so_name}}"
+    pytest
+
+build:
+    rm -f "{{py_src}}/{{so_name}}"
+    cargo build --release
+    cp "target/release/{{clib_name}}" "{{py_src}}/"
+    mv "{{py_src}}/{{clib_name}}" "{{py_src}}/{{so_name}}"
+    uv build --package opendataloader
+    uv build --package opendataloader-mcp
+    

@@ -6,9 +6,10 @@ edition = "2024"
 [lib]
 # "cdylib" produces a dynamic library; "staticlib" produces a static library.
 # You can include both if you want to generate both formats.
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+anyhow = "1.0.104"
 opendataloader_core = { path = "../opendataloader_core"}
 
 [build-dependencies]

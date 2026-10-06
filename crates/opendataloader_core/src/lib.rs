@@ -4,7 +4,7 @@
 //! `docs/specs/pdf-json-markdown-reimplementation.md`: parse, clean, rebuild
 //! semantics, order and assign IDs, then serialize or write images. The
 //! committed oracle and stage-to-fixture mapping live in
-//! `samples/oracle/manifest.toml`; this crate does not invoke the Java
+//! `data/oracle/manifest.toml`; this crate does not invoke the Java
 //! reference implementation.
 
 mod cleanup;
@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn convert_writes_requested_outputs_from_one_document() -> anyhow::Result<()> {
-        let pdf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/chinese_scan.pdf");
+        let pdf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/chinese_scan.pdf");
         let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/o1-test");
         fs::create_dir_all(&output_dir)?;
         let source = fs::read(&pdf_path)?;
@@ -135,14 +135,14 @@ mod tests {
         let actual_json =
             serde_json::from_str::<serde_json::Value>(&fs::read_to_string(output_dir.join("chinese_scan.json"))?)?;
         let mut expected_json = serde_json::from_str::<serde_json::Value>(&fs::read_to_string(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/oracle/raster/chinese_scan.json"),
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/oracle/raster/chinese_scan.json"),
         )?)?;
         expected_json["kids"][0]["source"] = "chinese_scan_images/imageFile1.png".into();
         assert_eq!(actual_json, expected_json);
         assert_eq!(
             fs::read_to_string(output_dir.join("chinese_scan.md"))?,
             fs::read_to_string(
-                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/oracle/raster/chinese_scan.md"),
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/oracle/raster/chinese_scan.md"),
             )?
             .replace("images/", "chinese_scan_images/"),
         );
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn parallel_conversion_matches_sequential_conversion() -> anyhow::Result<()> {
         let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let source_pdf = manifest_dir.join("../../samples/pdf/chinese_scan.pdf");
+        let source_pdf = manifest_dir.join("../../data/pdf/chinese_scan.pdf");
         let fixture_dir = manifest_dir.join("../../target/b1-test-inputs");
         let sequential_dir = manifest_dir.join("../../target/b1-sequential");
         let parallel_dir = manifest_dir.join("../../target/b1-parallel");

@@ -2,7 +2,17 @@
 
 - This project is for private use. Do not add backward-compatibility layers or
   fallbacks.
+- This repository is a Rust rewrite of the local PDF-to-JSON/Markdown flow of
+  OpenDataLoader PDF. Keep implementation and documentation scoped to local
+  PDF conversion; do not add hybrid, remote, OCR, or ML processing.
+- Keep attribution to the original OpenDataLoader PDF project in the README
+  and root `LICENSE`.
+- Keep the project license, upstream attribution, and third-party license
+  texts and notices in the root `LICENSE`. Do not add separate `NOTICE` or
+  `THIRD_PARTY` license files.
 - For Python scripts, do not add a shebang or `from __future__` imports.
+- Write Python docstrings in Google style. Document arguments, return values,
+  and raised exceptions where they apply.
 - Write Python tests with `pytest`, not `unittest`.
 - Implement work in small, incremental changes.
 - When a task changes multiple files, fan out sub-agents to parallelize the
@@ -14,7 +24,10 @@
 
 - `crates/` contains the Rust source code.
 - `packages/` contains supplementary packages.
+- `data/` contains PDF inputs and committed oracle fixtures.
 - `docs/` contains project documentation; put specifications in `docs/specs/`.
+- `README.md` documents supported usage and examples. `LICENSE` is the single
+  file for project and third-party license terms and notices.
 - `Cargo.toml` and `pyproject.toml` contain project configuration.
 - Treat remaining Java files as reference or legacy material unless the task
   explicitly asks you to change them.

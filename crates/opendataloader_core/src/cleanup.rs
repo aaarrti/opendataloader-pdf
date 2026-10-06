@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn parser_applies_fixture_text_cleanup() -> anyhow::Result<()> {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/invalid-chars.pdf");
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/invalid-chars.pdf");
         let document = crate::parse_pdf(&path).map_err(|error| anyhow::anyhow!(error))?;
         let text = document.pages[0]
             .chunks

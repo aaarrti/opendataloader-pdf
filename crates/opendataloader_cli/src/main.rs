@@ -2,7 +2,7 @@ use anyhow::{Result, bail};
 use clap::Parser;
 use std::path::PathBuf;
 
-use opendataloader_core::{ConversionOptions, convert_with_options};
+use opendataloader_clib::{ConversionOptions, convert_batch};
 
 #[derive(Debug, Parser)]
 #[command(name = "opendataloader", about = "Convert local PDF files to JSON and/or Markdown")]
@@ -45,7 +45,7 @@ fn run(cli_args: CliArg) -> Result<()> {
         );
     }
 
-    convert_with_options(
+    convert_batch(
         &cli_args.input_paths,
         &cli_args.out_dir,
         ConversionOptions {
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn writes_selected_outputs_and_images() -> Result<()> {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let input = root.join("../../samples/pdf/chinese_scan.pdf");
+        let input = root.join("../../data/pdf/chinese_scan.pdf");
         let output = root.join("../../target/cli-test");
         run(CliArg {
             input_paths: vec![input],

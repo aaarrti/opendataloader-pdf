@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 
 from opendataloader import convert
 
-PDF = Path(__file__).resolve().parents[3] / "samples/pdf/lorem.pdf"
+PDF = Path(__file__).resolve().parents[3] / "data/pdf/lorem.pdf"
 
 
 def test_e2e():

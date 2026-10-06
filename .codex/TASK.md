@@ -24,7 +24,7 @@ defines acceptance criteria for each task.
   directly exercises it. If none exists, add the PDF input and Java-generated
   expected output to the corpus and commit them before implementing that
   behavior.
-- Store new oracle material under `samples/` and document the Java version,
+- Store new oracle material under `data/` and document the Java version,
   command, PDF input, generated files, and covered behavior in a manifest.
   Keep binary images and exact Markdown bytes, including final line feeds.
 - Keep the Rust implementation self-contained. Java can generate or verify
@@ -274,7 +274,7 @@ finished modules.
   fixture-backed test, or a concrete documented blocker; `cargo test -p
   opendataloader_core` passes; no test requires Java or network access.
   Implemented the checklist traceability table in
-  `samples/oracle/manifest.toml`, mapping every item to Rust entry points,
+  `data/oracle/manifest.toml`, mapping every item to Rust entry points,
   committed fixtures, focused tests, and explicit blockers for missing parser
   evidence or deferred Base64 output.
 

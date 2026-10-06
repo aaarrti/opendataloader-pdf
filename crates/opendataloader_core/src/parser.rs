@@ -288,7 +288,7 @@ mod tests {
 
     #[test]
     fn parser_reads_lorem_metadata_pages_and_text() -> anyhow::Result<()> {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/lorem.pdf");
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/lorem.pdf");
         let document = crate::parse_pdf(&path).map_err(|error| anyhow::anyhow!(error))?;
         assert_eq!(document.page_count, 1);
         assert_eq!(document.metadata.author.as_deref(), Some("leebd-public"));
@@ -305,12 +305,12 @@ mod tests {
 
     #[test]
     fn parser_distinguishes_invalid_and_password_inputs() {
-        let invalid_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/fake-jpg.pdf");
+        let invalid_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/fake-jpg.pdf");
         assert!(matches!(
             crate::parse_pdf(&invalid_path),
             Err(ConversionError::InvalidInput { .. })
         ));
-        let password_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/password-protected.pdf");
+        let password_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/password-protected.pdf");
         assert!(matches!(
             crate::parse_pdf(&password_path),
             Err(ConversionError::PasswordProtected { .. })
@@ -319,7 +319,7 @@ mod tests {
 
     #[test]
     fn parser_preserves_raster_image_chunk_without_text() -> anyhow::Result<()> {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/chinese_scan.pdf");
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/chinese_scan.pdf");
         let document = crate::parse_pdf(&path).map_err(|error| anyhow::anyhow!(error))?;
         assert!(
             document

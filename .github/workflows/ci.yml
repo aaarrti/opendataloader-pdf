@@ -1,0 +1,23 @@
+name: CI
+
+on: push
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+      - run: uv sync --all-packages --all-groups --locked
+      - run: cargo test --workspace --locked
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: uv run ruff check .
+      - run: uv run black --check .
+      - run: cargo build -p opendataloder_clib --locked
+      - run: cp target/debug/libopendataloder_clib.so packages/opendataloader/src/opendataloader/libodl.so
+      - run: uv run pytest

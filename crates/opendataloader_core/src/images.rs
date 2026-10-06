@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn external_images_write_png_and_reference_written_file() -> anyhow::Result<()> {
-        let pdf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../samples/pdf/chinese_scan.pdf");
+        let pdf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/chinese_scan.pdf");
         let image_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/i1-test/images");
         fs::create_dir_all(&image_dir)?;
         let mut document = crate::parse_pdf(&pdf_path).map_err(|error| anyhow::anyhow!(error))?;

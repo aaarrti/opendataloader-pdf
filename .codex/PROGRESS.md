@@ -1,7 +1,7 @@
 2026-10-06 — Completed F1. Built the Java CLI, generated JSON/Markdown oracle
 outputs for baseline, multipage, table, raster/image, sanitization, and invalid
 character PDFs, and recorded invalid-input/password outcomes. Added checksums,
-provenance, and task coverage to `samples/oracle/manifest.toml`.
+provenance, and task coverage to `data/oracle/manifest.toml`.
 
 2026-10-06 — Completed M1. Added the Rust document model, parser chunk types,
 semantic element variants, image references, and typed conversion errors with
@@ -81,7 +81,7 @@ that verifies shared image references and unchanged source input. `cargo fmt
 C-library warnings remain.
 
 2026-10-06 — Completed V1. Added checklist traceability to
-`samples/oracle/manifest.toml`, mapping all nine first-round conformance items
+`data/oracle/manifest.toml`, mapping all nine first-round conformance items
 to Rust entry points, committed fixtures, focused tests, and concrete parity
 blockers. Deferred gaps remain explicit for truncated/XMP fixtures, exact
 XY-Cut++ parity, unsupported semantic inputs, isolated image-failure fixtures,
@@ -90,7 +90,7 @@ and Base64 images.
 2026-10-06 — Completed X1. Added a Rust stage-to-specification and fixture map
 to `docs/specs/pdf-json-markdown-reimplementation.md` and documented the
 self-contained pipeline in `crates/opendataloader_core/src/lib.rs`. Verified
-that Rust tests and builds use committed samples and do not require Java
+that Rust tests and builds use committed data and do not require Java
 sources, Maven, generated JARs, or decompilation output.
 
 2026-10-06 — Completed B1. Added core `ConversionOptions` with sequential
