@@ -243,7 +243,7 @@ finished modules.
   and HTML-in-Markdown mode remain deferred until the conversion orchestrator
   and parser expose the required output configuration.
 
-- [ ] **O1 — Connect the local conversion pipeline.** **Depends on:** P1, C1,
+- [x] **O1 — Connect the local conversion pipeline.** **Depends on:** P1, C1,
   S1, T1, I1, R1, J1, D1. **Parallel:** no. Replace the `convert` stub in
   `crates/opendataloader_core/src/lib.rs` with a single extraction pass that
   can write JSON, Markdown, and image files from the same extracted document.
@@ -253,6 +253,8 @@ finished modules.
   passes; an end-to-end test converts committed PDFs and compares requested
   files to Java references; requesting both formats parses each PDF once and
   shares IDs, page order, and image numbering; source PDFs remain unchanged.
+  Implemented with one parse per PDF, shared JSON/Markdown/image state,
+  contextual failures, and an oracle-backed raster end-to-end test.
 
 - [ ] **V1 — Close the first-round parity and traceability gaps.** **Depends
   on:** O1. **Parallel:** no. Walk the specification's first-round conformance

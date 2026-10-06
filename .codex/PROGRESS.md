@@ -72,3 +72,10 @@ element separators. Added focused renderer tests; `cargo fmt --all -- --check`,
 `cargo test -p opendataloader_core` (18 passed), and `cargo check --workspace`
 pass. Existing C-library warnings remain; full output orchestration is deferred
 to O1.
+
+2026-10-06 — Completed O1. Connected `convert` to parse each local PDF once,
+optionally write per-PDF PNG images, and write requested JSON and Markdown
+files with contextual errors. Added an oracle-backed raster end-to-end test
+that verifies shared image references and unchanged source input. `cargo fmt
+--all`, `cargo check --workspace`, and `cargo test --workspace` pass; existing
+C-library warnings remain.
