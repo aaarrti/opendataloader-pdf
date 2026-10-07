@@ -637,3 +637,12 @@ finished modules.
   extracted, group same-tag runs, and reserve font-size heading inference for
   untagged text. The full STD3 regression remains active because structural
   tag mapping and image ordering still differ in the ten-fixture corpus.
+
+- [x] **STD3-F5 — Normalize leaf structure roles to their semantic parent.**
+  **Depends on:** STD3-F2. ParentTree entries that resolve only to `Span`
+  must inherit the nearest meaningful structure role so tagged paragraph and
+  figure content is not exposed as generic leaf spans. Walk the structure
+  parent chain with a bounded depth, preserving explicit roles such as `P`
+  and `Figure`; add a fixture-backed role test. The ten-fixture regression
+  remains active because paragraph grouping and table reconstruction still
+  have separate mismatches.

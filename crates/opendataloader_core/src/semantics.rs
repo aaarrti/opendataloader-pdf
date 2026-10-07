@@ -162,12 +162,8 @@ fn is_page_background(page: &Page, bounds: BoundingBox, epsilon: f64) -> bool {
 fn is_page_edge_line(page: &Page, bounds: BoundingBox, epsilon: f64) -> bool {
     let horizontal = bounds.top - bounds.bottom <= 2.0;
     let vertical = bounds.right - bounds.left <= 2.0;
-    (horizontal
-        && bounds.left <= epsilon
-        && bounds.right >= page.width - epsilon)
-        || (vertical
-            && bounds.bottom <= epsilon
-            && bounds.top >= page.height - epsilon)
+    (horizontal && bounds.left <= epsilon && bounds.right >= page.width - epsilon)
+        || (vertical && bounds.bottom <= epsilon && bounds.top >= page.height - epsilon)
 }
 
 fn table_from_lines(page: &Page, text_lines: &[TextLine], lines: &[BoundingBox]) -> Option<SemanticElement> {

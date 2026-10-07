@@ -265,3 +265,11 @@ elements remain separate paragraphs. Added a focused regression test. The
 focused test, `cargo check --workspace --locked`, `cargo fmt --all -- --check`,
 and `git diff --check` pass; the full ten-fixture regression still reports the
 documented remaining mismatches, so STD3 remains incomplete.
+
+2026-10-08 — Completed STD3-F5. ParentTree role resolution now walks through
+leaf `Span` structure elements to the nearest meaningful parent role, while
+preserving roles such as `Figure`; added a fixture-backed parser assertion for
+paragraph and figure roles. Focused parser tests, `cargo check --workspace
+--locked`, formatting, and `git diff --check` pass. The active ten-fixture
+regression remains failing on separate paragraph-grouping and table-structure
+mismatches, so STD3 remains incomplete.

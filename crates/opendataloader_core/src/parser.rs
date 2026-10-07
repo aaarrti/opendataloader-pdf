@@ -116,10 +116,9 @@ fn collect_structure_roles(pdf: &PdfDocument, object: &Object, roles: &mut BTree
                 let Ok(structure) = pdf.dereference(entry).and_then(|(_, object)| object.as_dict()) else {
                     continue;
                 };
-                let Ok(role) = structure.get_deref(b"S", pdf).and_then(Object::as_name) else {
-                    continue;
-                };
-                roles.insert((parent_key, mcid as u64), String::from_utf8_lossy(role).into_owned());
+                if let Some(role) = structure_role(pdf, &Object::Dictionary(structure.clone())) {
+                    roles.insert((parent_key, mcid as u64), role);
+                }
             }
         }
     }
@@ -128,6 +127,25 @@ fn collect_structure_roles(pdf: &PdfDocument, object: &Object, roles: &mut BTree
             collect_structure_roles(pdf, kid, roles);
         }
     }
+}
+
+fn structure_role(pdf: &PdfDocument, object: &Object) -> Option<String> {
+    let mut current = object.clone();
+    for _ in 0..32 {
+        let (_, structure) = pdf.dereference(&current).ok()?;
+        let dictionary = structure.as_dict().ok()?;
+        let role = dictionary
+            .get_deref(b"S", pdf)
+            .ok()?
+            .as_name()
+            .ok()
+            .map(|name| String::from_utf8_lossy(name).into_owned())?;
+        if role != "Span" {
+            return Some(role);
+        }
+        current = dictionary.get(b"P").ok()?.clone();
+    }
+    None
 }
 
 fn read_metadata(pdf: &PdfDocument) -> DocumentMetadata {
@@ -941,7 +959,9 @@ mod tests {
         let path =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/stg/10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj.pdf");
         let pdf = PdfDocument::load(&path)?;
-        assert!(structure_roles(&pdf).values().any(|role| role == "Figure"));
+        let roles = structure_roles(&pdf);
+        assert!(roles.values().any(|role| role == "P"));
+        assert!(roles.values().any(|role| role == "Figure"));
         Ok(())
     }
 }
