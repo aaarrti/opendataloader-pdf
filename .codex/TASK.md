@@ -532,7 +532,7 @@ finished modules.
   contain no parser-produced control characters. Geometry and image/table
   mismatches remain for STD2-F2 and STD2-F3.
 
-- [ ] **STD2-F2 — Preserve text coordinates and rebuild semantic geometry.**
+- [x] **STD2-F2 — Preserve text coordinates and rebuild semantic geometry.**
   **Depends on:** STD2. **Parallel:** yes, with STD2-F1 and STD2-F3. Extend
   the parser chunk data from `crates/opendataloader_core/src/parser.rs` with
   reliable text bounds and line positions, then update
@@ -542,7 +542,10 @@ finished modules.
   ten STD1 JSON outputs have oracle-compatible text bounds and semantic
   kinds/order wherever the PDFs expose them; Markdown no longer gains the
   large fabricated table blocks; focused tests cover a positioned text page
-  and a non-table page.
+  and a non-table page. Implemented parser text-matrix and graphics-state
+  tracking for positioned bounds, font sizes, and transformed text; added a
+  positioned-text fixture test. The ten-fixture regression still reports
+  mismatches from the separately scoped image/table extraction work in STD2-F3.
 
 - [ ] **STD2-F3 — Match image and table extraction structure.** **Depends on:**
   STD2. **Parallel:** yes, with STD2-F1 and STD2-F2. Compare the Java and Rust

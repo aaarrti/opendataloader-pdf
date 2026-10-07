@@ -159,60 +159,89 @@ fn page_chunks(
         .get_and_decode_page_content(page_id)
         .map_err(|error| error.to_string())?;
     let fonts = pdf.get_page_fonts(page_id).map_err(|error| error.to_string())?;
-    let mut current_font = None;
+    let mut text_state = TextState::default();
+    let mut graphics_stack = Vec::new();
     let mut chunks = Vec::new();
     for (parser_order, operation) in content.operations.iter().enumerate() {
         match operation.operator.as_str() {
+            "BT" => text_state.reset_text_position(),
+            "q" => graphics_stack.push(text_state.ctm),
+            "Q" => {
+                if let Some(ctm) = graphics_stack.pop() {
+                    text_state.ctm = ctm;
+                }
+            }
+            "cm" => concatenate_matrix(&mut text_state.ctm, &operation.operands),
             "Tf" => {
-                current_font = operation
+                text_state.font_name = operation
                     .operands
                     .first()
                     .and_then(|object| object.as_name().ok())
                     .map(Vec::from);
+                text_state.font_size = operation.operands.get(1).and_then(object_number).unwrap_or(12.0);
             }
-            "Tj" | "'" | "\"" => {
-                if let Some(text) = operation
-                    .operands
-                    .last()
-                    .and_then(|object| decoded_pdf_text(pdf, &fonts, current_font.as_ref(), object))
-                    && !text.is_empty()
-                {
-                    chunks.push(ParserChunk::Text(TextChunk {
+            "Tm" => set_text_matrix(&mut text_state, &operation.operands),
+            "Td" => move_text(&mut text_state, &operation.operands, false),
+            "TD" => move_text(&mut text_state, &operation.operands, true),
+            "T*" => next_text_line(&mut text_state),
+            "Tj" => show_text(
+                pdf,
+                &fonts,
+                &mut text_state,
+                operation.operands.last(),
+                page_index,
+                parser_order,
+                &mut chunks,
+            ),
+            "'" => {
+                next_text_line(&mut text_state);
+                show_text(
+                    pdf,
+                    &fonts,
+                    &mut text_state,
+                    operation.operands.last(),
+                    page_index,
+                    parser_order,
+                    &mut chunks,
+                );
+            }
+            "\"" => {
+                next_text_line(&mut text_state);
+                if let Some(text) = operation.operands.last() {
+                    show_text(
+                        pdf,
+                        &fonts,
+                        &mut text_state,
+                        Some(text),
                         page_index,
-                        bounds: page_box(width, height),
-                        text,
-                        glyph_order: Vec::new(),
-                        character_spacing: None,
-                        font: FontInfo::default(),
                         parser_order,
-                        structure_id: None,
-                        pdfua_tag: None,
-                    }));
+                        &mut chunks,
+                    );
                 }
             }
             "TJ" => {
-                let text = operation
-                    .operands
-                    .first()
-                    .and_then(|object| object.as_array().ok())
-                    .map(|items| {
-                        items
-                            .iter()
-                            .filter_map(|object| decoded_pdf_text(pdf, &fonts, current_font.as_ref(), object))
-                            .collect::<String>()
-                    });
-                if let Some(text) = text.filter(|text| !text.is_empty()) {
-                    chunks.push(ParserChunk::Text(TextChunk {
+                let Some(items) = operation.operands.first().and_then(|object| object.as_array().ok()) else {
+                    continue;
+                };
+                let start = (text_state.x, text_state.y);
+                let mut text = String::new();
+                for item in items {
+                    if let Some(value) = decoded_pdf_text(pdf, &fonts, text_state.font_name.as_ref(), item) {
+                        text.push_str(&value);
+                        text_state.x += text_width(&value, text_state.font_size);
+                    } else if let Some(adjustment) = object_number(item) {
+                        text_state.x -= adjustment * text_state.font_size / 1000.0;
+                    }
+                }
+                if !text.is_empty() {
+                    push_text_chunk(
+                        &mut chunks,
                         page_index,
-                        bounds: page_box(width, height),
-                        text,
-                        glyph_order: Vec::new(),
-                        character_spacing: None,
-                        font: FontInfo::default(),
                         parser_order,
-                        structure_id: None,
-                        pdfua_tag: None,
-                    }));
+                        text_state.bounds(start, text_state.x),
+                        text,
+                        &text_state,
+                    );
                 }
             }
             "Do" if is_image_invocation(pdf, page_id, operation) => chunks.push(ParserChunk::Image(ImageChunk {
@@ -258,6 +287,194 @@ fn page_chunks(
         }
     }
     Ok(chunks)
+}
+
+struct TextState {
+    x: f64,
+    y: f64,
+    line_x: f64,
+    line_y: f64,
+    leading: f64,
+    font_name: Option<Vec<u8>>,
+    font_size: f64,
+    ctm: [f64; 6],
+}
+
+impl TextState {
+    fn reset_text_position(&mut self) {
+        self.x = 0.0;
+        self.y = 0.0;
+        self.line_x = 0.0;
+        self.line_y = 0.0;
+        self.leading = 0.0;
+    }
+
+    fn bounds(&self, start: (f64, f64), end_x: f64) -> BoundingBox {
+        let size = if self.font_size > 0.0 { self.font_size } else { 12.0 };
+        let points = [
+            self.transform(start.0, start.1),
+            self.transform(end_x, start.1),
+            self.transform(start.0, start.1 + size),
+            self.transform(end_x, start.1 + size),
+        ];
+        BoundingBox {
+            left: points.iter().map(|point| point.0).fold(f64::INFINITY, f64::min),
+            bottom: points.iter().map(|point| point.1).fold(f64::INFINITY, f64::min),
+            right: points.iter().map(|point| point.0).fold(f64::NEG_INFINITY, f64::max),
+            top: points.iter().map(|point| point.1).fold(f64::NEG_INFINITY, f64::max),
+        }
+    }
+
+    fn transform(&self, x: f64, y: f64) -> (f64, f64) {
+        (
+            self.ctm[0] * x + self.ctm[2] * y + self.ctm[4],
+            self.ctm[1] * x + self.ctm[3] * y + self.ctm[5],
+        )
+    }
+}
+
+impl Default for TextState {
+    fn default() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            line_x: 0.0,
+            line_y: 0.0,
+            leading: 0.0,
+            font_name: None,
+            font_size: 0.0,
+            ctm: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        }
+    }
+}
+
+fn concatenate_matrix(ctm: &mut [f64; 6], operands: &[Object]) {
+    if operands.len() < 6 {
+        return;
+    }
+    let Some(values) = operands.iter().take(6).map(object_number).collect::<Option<Vec<_>>>() else {
+        return;
+    };
+    let [a, b, c, d, e, f] = [values[0], values[1], values[2], values[3], values[4], values[5]];
+    let [ca, cb, cc, cd, ce, cf] = *ctm;
+    *ctm = [
+        ca * a + cc * b,
+        cb * a + cd * b,
+        ca * c + cc * d,
+        cb * c + cd * d,
+        ca * e + cc * f + ce,
+        cb * e + cd * f + cf,
+    ];
+}
+
+fn object_number(object: &Object) -> Option<f64> {
+    object
+        .as_float()
+        .ok()
+        .map(f64::from)
+        .or_else(|| object.as_i64().ok().map(|value| value as f64))
+}
+
+fn set_text_matrix(state: &mut TextState, operands: &[Object]) {
+    if operands.len() >= 6 {
+        state.line_x = object_number(&operands[4]).unwrap_or(0.0);
+        state.line_y = object_number(&operands[5]).unwrap_or(0.0);
+        state.x = state.line_x;
+        state.y = state.line_y;
+    }
+}
+
+fn move_text(state: &mut TextState, operands: &[Object], set_leading: bool) {
+    if operands.len() < 2 {
+        return;
+    }
+    let x = object_number(&operands[0]).unwrap_or(0.0);
+    let y = object_number(&operands[1]).unwrap_or(0.0);
+    if set_leading {
+        state.leading = -y;
+    }
+    state.line_x += x;
+    state.line_y += y;
+    state.x = state.line_x;
+    state.y = state.line_y;
+}
+
+fn next_text_line(state: &mut TextState) {
+    state.line_y -= state.leading;
+    state.x = state.line_x;
+    state.y = state.line_y;
+}
+
+fn show_text(
+    pdf: &PdfDocument,
+    fonts: &std::collections::BTreeMap<Vec<u8>, &Dictionary>,
+    state: &mut TextState,
+    object: Option<&Object>,
+    page_index: usize,
+    parser_order: usize,
+    chunks: &mut Vec<ParserChunk>,
+) {
+    let Some(object) = object else { return };
+    let Some(text) = decoded_pdf_text(pdf, fonts, state.font_name.as_ref(), object) else {
+        return;
+    };
+    if text.is_empty() {
+        return;
+    }
+    let start = (state.x, state.y);
+    state.x += text_width(&text, state.font_size);
+    push_text_chunk(
+        chunks,
+        page_index,
+        parser_order,
+        state.bounds(start, state.x),
+        text,
+        state,
+    );
+}
+
+fn push_text_chunk(
+    chunks: &mut Vec<ParserChunk>,
+    page_index: usize,
+    parser_order: usize,
+    bounds: BoundingBox,
+    text: String,
+    state: &TextState,
+) {
+    chunks.push(ParserChunk::Text(TextChunk {
+        page_index,
+        bounds,
+        text,
+        glyph_order: Vec::new(),
+        character_spacing: None,
+        font: FontInfo {
+            name: state
+                .font_name
+                .as_ref()
+                .map(|name| String::from_utf8_lossy(name).into_owned()),
+            size: (state.font_size > 0.0).then_some(state.font_size),
+            ..Default::default()
+        },
+        parser_order,
+        structure_id: None,
+        pdfua_tag: None,
+    }));
+}
+
+fn text_width(text: &str, font_size: f64) -> f64 {
+    let size = if font_size > 0.0 { font_size } else { 12.0 };
+    text.chars()
+        .map(|character| {
+            if character.is_whitespace() {
+                0.25
+            } else if character.is_ascii() {
+                0.5
+            } else {
+                1.0
+            }
+        })
+        .sum::<f64>()
+        * size
 }
 
 pub(crate) fn page_box(width: f64, height: f64) -> BoundingBox {
@@ -331,6 +548,29 @@ mod tests {
                 .iter()
                 .any(|chunk| matches!(chunk, ParserChunk::Text(text) if !text.text.is_empty()))
         );
+        Ok(())
+    }
+
+    #[test]
+    fn parser_preserves_positioned_text_bounds() -> anyhow::Result<()> {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/lorem.pdf");
+        let document = crate::parse_pdf(&path).map_err(|error| anyhow::anyhow!(error))?;
+        let text = document.pages[0]
+            .chunks
+            .iter()
+            .find_map(|chunk| match chunk {
+                ParserChunk::Text(text) => Some(text),
+                _ => None,
+            })
+            .ok_or_else(|| anyhow::anyhow!("expected positioned text"))?;
+        assert!(text.bounds.left > 0.0);
+        assert!(text.bounds.right < document.pages[0].width);
+        assert!(text.bounds.top < document.pages[0].height);
+        assert!(text.font.size.is_some());
+        assert!(document
+            .elements
+            .iter()
+            .all(|element| !matches!(element, SemanticElement::Table { .. })));
         Ok(())
     }
 

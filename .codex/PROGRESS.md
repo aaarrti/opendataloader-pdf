@@ -181,3 +181,10 @@ generated JSON text contents are free of parser-produced control characters.
 The active ten-fixture regression still reports the documented geometry and
 image/table mismatches for STD2-F2/F3. `cargo test -p opendataloader_core
 --locked parser_` passes.
+
+2026-10-07 — Completed STD2-F2. Updated `parser.rs` to track PDF text matrices,
+line movement, font size, and graphics-state transforms (`cm`, `q`, `Q`) so
+text chunks retain page-space bounds instead of full-page rectangles. Added a
+fixture-backed positioned-text and non-table assertion. `cargo test -p
+opendataloader_core --locked parser_` passes; the active ten-fixture regression
+still reports the separately scoped image/table mismatches for STD2-F3.
