@@ -11,6 +11,9 @@
   texts and notices in the root `LICENSE`. Do not add separate `NOTICE` or
   `THIRD_PARTY` license files.
 - For Python scripts, do not add a shebang or `from __future__` imports.
+- Keep Python package `__init__.py` files limited to package metadata and public
+  imports or re-exports. Put function, class, and business logic in
+  responsibility-specific modules; do not implement it in `__init__.py`.
 - Write Python docstrings in Google style. Document arguments, return values,
   and raised exceptions where they apply.
 - Write Python tests with `pytest`, not `unittest`.

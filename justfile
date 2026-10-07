@@ -39,17 +39,13 @@ lint:
     uv run black --check .
 
 test:
-    rm -f "{{py_src}}/{{so_name}}"
     cargo test
-    cp "target/debug/{{clib_name}}" "{{py_src}}/"
-    mv "{{py_src}}/{{clib_name}}" "{{py_src}}/{{so_name}}"
-    pytest
+    ODL_LIB_PATH="target/debug/{{clib_name}}" pytest
 
 build:
     rm -f "{{py_src}}/{{so_name}}"
     cargo build --release
     cp "target/release/{{clib_name}}" "{{py_src}}/"
     mv "{{py_src}}/{{clib_name}}" "{{py_src}}/{{so_name}}"
-    uv build --package opendataloader
-    uv build --package opendataloader-mcp
+    uv build --all-packages
 

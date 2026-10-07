@@ -146,3 +146,9 @@ unrelated pre-existing `markdown.rs` rustfmt difference.
 already matches the configured Black formatting, so no source changes were
 needed. `uv run black --check .`, `uv run ruff check .`, `uv run pytest` (1
 passed), and `cargo check --workspace --locked` pass.
+
+2026-10-07 — Completed TEST1. Preserved the full `anyhow` error chain when the
+C ABI maps core conversion failures, so `odl_last_error()` includes the
+failing input path while retaining output-directory details. The targeted C
+ABI test, `cargo test --workspace --locked`, `cargo check --workspace
+--locked`, and strict workspace Clippy pass.

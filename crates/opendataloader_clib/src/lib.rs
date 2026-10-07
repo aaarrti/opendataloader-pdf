@@ -118,7 +118,7 @@ fn convert(
             parallel: mode & ODL_OPTION_PARALLEL != 0,
         },
     )
-    .map_err(|error| AbiError::Conversion(error.to_string()))
+    .map_err(|error| AbiError::Conversion(format!("{error:#}")))
 }
 
 /// Convert a batch of local PDFs and write the selected output files.
@@ -211,11 +211,8 @@ mod tests {
             odl_convert(paths.as_ptr(), 1, output.as_ptr(), ODL_OPTION_JSON),
             ODL_STATUS_CONVERSION_ERROR
         );
-        assert!(
-            unsafe { CStr::from_ptr(odl_last_error()) }
-                .to_str()?
-                .contains("missing.pdf")
-        );
+        let error = unsafe { CStr::from_ptr(odl_last_error()) }.to_str()?;
+        assert!(error.contains("missing.pdf"), "{error}");
 
         let output_path = PathBuf::from("target/abi-output-file");
         fs::write(&output_path, b"not a directory")?;

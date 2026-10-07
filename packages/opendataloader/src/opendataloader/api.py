@@ -49,9 +49,7 @@ def _load_library() -> ctypes.CDLL:
     with _LIBRARY_LOCK:
         if _LIBRARY is not None:
             return _LIBRARY
-        library_path = Path(
-            os.environ.get("OPENDATALOADER_PDF_LIBRARY", Path(__file__).with_name("libodl.so"))
-        )
+        library_path = Path(os.environ.get("ODL_LIB_PATH", Path(__file__).with_name("libodl.so")))
         try:
             library = ctypes.CDLL(library_path)
         except OSError as error:
