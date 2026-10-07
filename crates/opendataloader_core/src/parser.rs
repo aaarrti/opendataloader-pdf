@@ -161,6 +161,7 @@ fn page_chunks(
     let fonts = pdf.get_page_fonts(page_id).map_err(|error| error.to_string())?;
     let mut text_state = TextState::default();
     let mut graphics_stack = Vec::new();
+    let mut path_point = None;
     let mut chunks = Vec::new();
     for (parser_order, operation) in content.operations.iter().enumerate() {
         match operation.operator.as_str() {
@@ -219,6 +220,14 @@ fn page_chunks(
                     );
                 }
             }
+            "BI" => chunks.push(ParserChunk::Image(ImageChunk {
+                page_index,
+                bounds: image_bounds(&text_state.ctm),
+                object_reference: None,
+                parser_order,
+                structure_id: None,
+                pdfua_tag: None,
+            })),
             "TJ" => {
                 let Some(items) = operation.operands.first().and_then(|object| object.as_array().ok()) else {
                     continue;
@@ -244,20 +253,40 @@ fn page_chunks(
                     );
                 }
             }
-            "Do" if is_image_invocation(pdf, page_id, operation) => chunks.push(ParserChunk::Image(ImageChunk {
-                page_index,
-                bounds: page_box(width, height),
-                object_reference: operation
+            "Do" => {
+                let object_reference = operation
                     .operands
                     .first()
                     .and_then(|object| object.as_name().ok())
-                    .map(|name| String::from_utf8_lossy(name).into_owned()),
-                parser_order,
-                structure_id: None,
-                pdfua_tag: None,
-            })),
-            "m" | "l" | "re" => {
-                if let Some(bounds) = line_bounds(operation) {
+                    .map(|name| String::from_utf8_lossy(name).into_owned());
+                for bounds in image_bounds_for_operation(pdf, page_id, operation, text_state.ctm) {
+                    chunks.push(ParserChunk::Image(ImageChunk {
+                        page_index,
+                        bounds,
+                        object_reference: object_reference.clone(),
+                        parser_order,
+                        structure_id: None,
+                        pdfua_tag: None,
+                    }));
+                }
+            }
+            "m" => path_point = point(&operation.operands).map(|point| transform(&text_state.ctm, point)),
+            "l" => {
+                if let Some(end) = point(&operation.operands).map(|point| transform(&text_state.ctm, point)) {
+                    if let Some(start) = path_point
+                        && let Some(bounds) = segment_bounds(start, end)
+                    {
+                        chunks.push(ParserChunk::LineArt(LineArtChunk {
+                            page_index,
+                            bounds,
+                            parser_order,
+                        }));
+                    }
+                    path_point = Some(end);
+                }
+            }
+            "re" => {
+                if let Some(bounds) = rectangle_bounds(&text_state.ctm, &operation.operands) {
                     chunks.push(ParserChunk::LineArt(LineArtChunk {
                         page_index,
                         bounds,
@@ -486,46 +515,138 @@ pub(crate) fn page_box(width: f64, height: f64) -> BoundingBox {
     }
 }
 
-fn is_image_invocation(pdf: &PdfDocument, page_id: lopdf::ObjectId, operation: &Operation) -> bool {
+fn image_bounds_for_operation(
+    pdf: &PdfDocument,
+    page_id: lopdf::ObjectId,
+    operation: &Operation,
+    ctm: [f64; 6],
+) -> Vec<BoundingBox> {
     let Some(name) = operation.operands.first().and_then(|object| object.as_name().ok()) else {
-        return false;
+        return Vec::new();
     };
     let Ok((resources, _)) = pdf.get_page_resources(page_id) else {
-        return false;
+        return Vec::new();
     };
-    let Some(resources) = resources else { return false };
-    let Ok(xobjects) = resources.get_deref(b"XObject", pdf).and_then(Object::as_dict) else {
-        return false;
-    };
-    let Ok(reference) = xobjects.get(name).and_then(Object::as_reference) else {
-        return false;
-    };
-    let Ok(stream) = pdf.get_object(reference).and_then(Object::as_stream) else {
-        return false;
-    };
-    stream
-        .dict
-        .get(b"Subtype")
-        .and_then(Object::as_name)
-        .is_ok_and(|subtype| subtype == b"Image")
+    let Some(resources) = resources else { return Vec::new() };
+    image_bounds_in_resources(pdf, resources, name, ctm)
 }
 
-fn line_bounds(operation: &Operation) -> Option<BoundingBox> {
-    let numbers: Vec<f64> = operation
-        .operands
-        .iter()
-        .filter_map(|object| object.as_float().ok().map(f64::from))
-        .collect();
-    let (left, bottom, right, top) = match operation.operator.as_str() {
-        "m" | "l" if numbers.len() >= 2 => (numbers[0], numbers[1], numbers[0], numbers[1]),
-        "re" if numbers.len() >= 4 => (numbers[0], numbers[1], numbers[0] + numbers[2], numbers[1] + numbers[3]),
-        _ => return None,
+fn image_bounds_in_resources(
+    pdf: &PdfDocument,
+    resources: &Dictionary,
+    name: &[u8],
+    ctm: [f64; 6],
+) -> Vec<BoundingBox> {
+    let Ok(xobjects) = resources.get_deref(b"XObject", pdf).and_then(Object::as_dict) else {
+        return Vec::new();
     };
+    let Ok(reference) = xobjects.get(name).and_then(Object::as_reference) else {
+        return Vec::new();
+    };
+    let Ok(stream) = pdf.get_object(reference).and_then(Object::as_stream) else {
+        return Vec::new();
+    };
+    let Ok(subtype) = stream.dict.get(b"Subtype").and_then(Object::as_name) else {
+        return Vec::new();
+    };
+    if subtype == b"Image" {
+        return vec![image_bounds(&ctm)];
+    }
+    if subtype != b"Form" {
+        return Vec::new();
+    }
+    let Ok(content_bytes) = stream.decompressed_content() else {
+        return Vec::new();
+    };
+    let Ok(content) = lopdf::content::Content::decode(&content_bytes) else {
+        return Vec::new();
+    };
+    let mut form_ctm = ctm;
+    if let Ok(matrix) = stream.dict.get(b"Matrix").and_then(Object::as_array) {
+        concatenate_matrix(&mut form_ctm, matrix);
+    }
+    let form_resources = stream
+        .dict
+        .get_deref(b"Resources", pdf)
+        .ok()
+        .and_then(|object| object.as_dict().ok())
+        .unwrap_or(resources);
+    let mut stack = Vec::new();
+    let mut images = Vec::new();
+    for operation in content.operations {
+        match operation.operator.as_str() {
+            "q" => stack.push(form_ctm),
+            "Q" => {
+                if let Some(saved) = stack.pop() {
+                    form_ctm = saved;
+                }
+            }
+            "cm" => concatenate_matrix(&mut form_ctm, &operation.operands),
+            "Do" => {
+                if let Some(name) = operation.operands.first().and_then(|object| object.as_name().ok()) {
+                    images.extend(image_bounds_in_resources(pdf, form_resources, name, form_ctm));
+                }
+            }
+            _ => {}
+        }
+    }
+    images
+}
+
+fn point(operands: &[Object]) -> Option<(f64, f64)> {
+    Some((object_number(operands.first()?)?, object_number(operands.get(1)?)?))
+}
+
+fn transform(matrix: &[f64; 6], (x, y): (f64, f64)) -> (f64, f64) {
+    (
+        matrix[0] * x + matrix[2] * y + matrix[4],
+        matrix[1] * x + matrix[3] * y + matrix[5],
+    )
+}
+
+fn segment_bounds(start: (f64, f64), end: (f64, f64)) -> Option<BoundingBox> {
+    (start != end).then_some(BoundingBox {
+        left: start.0.min(end.0),
+        bottom: start.1.min(end.1),
+        right: start.0.max(end.0),
+        top: start.1.max(end.1),
+    })
+}
+
+fn rectangle_bounds(matrix: &[f64; 6], operands: &[Object]) -> Option<BoundingBox> {
+    let left = object_number(operands.first()?);
+    let bottom = object_number(operands.get(1)?);
+    let width = object_number(operands.get(2)?);
+    let height = object_number(operands.get(3)?);
+    let points = [
+        transform(matrix, (left?, bottom?)),
+        transform(matrix, (left? + width?, bottom?)),
+        transform(matrix, (left?, bottom? + height?)),
+        transform(matrix, (left? + width?, bottom? + height?)),
+    ];
     Some(BoundingBox {
-        left: left.min(right),
-        bottom: bottom.min(top),
-        right: left.max(right),
-        top: bottom.max(top),
+        left: points.iter().map(|point| point.0).fold(f64::INFINITY, f64::min),
+        bottom: points.iter().map(|point| point.1).fold(f64::INFINITY, f64::min),
+        right: points.iter().map(|point| point.0).fold(f64::NEG_INFINITY, f64::max),
+        top: points.iter().map(|point| point.1).fold(f64::NEG_INFINITY, f64::max),
+    })
+}
+
+fn image_bounds(matrix: &[f64; 6]) -> BoundingBox {
+    rectangle_bounds(
+        matrix,
+        &[
+            Object::Integer(0),
+            Object::Integer(0),
+            Object::Integer(1),
+            Object::Integer(1),
+        ],
+    )
+    .unwrap_or(BoundingBox {
+        left: 0.0,
+        bottom: 0.0,
+        right: 1.0,
+        top: 1.0,
     })
 }
 

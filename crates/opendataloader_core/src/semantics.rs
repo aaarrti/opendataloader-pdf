@@ -19,14 +19,18 @@ pub fn reconstruct_semantics(document: &mut Document) {
                 },
             })
         }));
-        let table = table_from_page(page);
-        let table_bounds = table.as_ref().map(element_bounds);
-        if let Some(table) = table {
+        let tables = tables_from_page(page);
+        let table_bounds = tables.iter().map(element_bounds).collect::<Vec<_>>();
+        for table in tables {
             document.elements.push(table);
         }
         let lines = text_lines(page)
             .into_iter()
-            .filter(|line| table_bounds.is_none_or(|bounds| !contains_bounds(bounds, line.common.bounds)))
+            .filter(|line| {
+                !table_bounds
+                    .iter()
+                    .any(|bounds| contains_bounds(*bounds, line.common.bounds))
+            })
             .collect::<Vec<_>>();
         let mut index = 0;
         while index < lines.len() {
@@ -86,32 +90,77 @@ pub fn reconstruct_semantics(document: &mut Document) {
     }
 }
 
-fn table_from_page(page: &Page) -> Option<SemanticElement> {
-    let epsilon = 0.01;
+fn tables_from_page(page: &Page) -> Vec<SemanticElement> {
+    let epsilon = 1.0;
+    let lines = page
+        .chunks
+        .iter()
+        .filter_map(|chunk| match chunk {
+            ParserChunk::LineArt(line)
+                if !is_page_background(page, line.bounds, epsilon) && is_table_line(line.bounds) =>
+            {
+                Some(line.bounds)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let mut groups: Vec<Vec<BoundingBox>> = Vec::new();
+    for line in lines {
+        let mut matches = Vec::new();
+        for (index, group) in groups.iter().enumerate() {
+            if group.iter().any(|other| touches(*other, line, epsilon)) {
+                matches.push(index);
+            }
+        }
+        if let Some(&first) = matches.first() {
+            groups[first].push(line);
+            for &index in matches.iter().skip(1).rev() {
+                let merged = groups.remove(index);
+                groups[first].extend(merged);
+            }
+        } else {
+            groups.push(vec![line]);
+        }
+    }
+
+    let text_lines = positioned_text_lines(page);
+    groups
+        .into_iter()
+        .filter_map(|group| table_from_lines(page, &text_lines, &group))
+        .collect()
+}
+
+fn is_table_line(bounds: BoundingBox) -> bool {
+    bounds.right - bounds.left <= 2.0 || bounds.top - bounds.bottom <= 2.0
+}
+
+fn is_page_background(page: &Page, bounds: BoundingBox, epsilon: f64) -> bool {
+    bounds.left <= epsilon
+        && bounds.bottom <= epsilon
+        && bounds.right >= page.width - epsilon
+        && bounds.top >= page.height - epsilon
+}
+
+fn table_from_lines(page: &Page, text_lines: &[TextLine], lines: &[BoundingBox]) -> Option<SemanticElement> {
     let mut columns = Vec::new();
     let mut rows = Vec::new();
-    for chunk in &page.chunks {
-        let ParserChunk::LineArt(line) = chunk else {
-            continue;
-        };
-        let width = line.bounds.right - line.bounds.left;
-        let height = line.bounds.top - line.bounds.bottom;
-        if width.abs() <= epsilon && height > epsilon {
-            columns.push(line.bounds.left);
-        } else if height.abs() <= epsilon && width > epsilon {
-            rows.push(line.bounds.bottom);
-        } else if width > epsilon && height > epsilon {
-            columns.extend([line.bounds.left, line.bounds.right]);
-            rows.extend([line.bounds.bottom, line.bounds.top]);
+    for line in lines {
+        let width = line.right - line.left;
+        let height = line.top - line.bottom;
+        if width <= 0.01 && height > 0.01 {
+            columns.push(line.left);
+        } else if height <= 0.01 && width > 0.01 {
+            rows.push(line.bottom);
+        } else if width > 0.01 && height > 0.01 {
+            columns.extend([line.left, line.right]);
+            rows.extend([line.bottom, line.top]);
         }
     }
     deduplicate_coordinates(&mut columns);
     deduplicate_coordinates(&mut rows);
-    if columns.len() < 2 || rows.len() < 2 {
+    if columns.len() < 2 || rows.len() < 2 || (columns.len() - 1) * (rows.len() - 1) < 2 {
         return None;
     }
-
-    let text_lines = positioned_text_lines(page);
     let bounds = BoundingBox {
         left: *columns.first()?,
         bottom: *rows.first()?,
@@ -186,9 +235,16 @@ fn table_from_page(page: &Page) -> Option<SemanticElement> {
     })
 }
 
+fn touches(left: BoundingBox, right: BoundingBox, epsilon: f64) -> bool {
+    left.left <= right.right + epsilon
+        && right.left <= left.right + epsilon
+        && left.bottom <= right.top + epsilon
+        && right.bottom <= left.top + epsilon
+}
+
 fn deduplicate_coordinates(values: &mut Vec<f64>) {
     values.sort_by(f64::total_cmp);
-    values.dedup_by(|left, right| (*left - *right).abs() <= 0.01);
+    values.dedup_by(|left, right| (*left - *right).abs() <= 1.0);
 }
 
 fn positioned_text_lines(page: &Page) -> Vec<TextLine> {

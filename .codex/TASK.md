@@ -547,7 +547,7 @@ finished modules.
   positioned-text fixture test. The ten-fixture regression still reports
   mismatches from the separately scoped image/table extraction work in STD2-F3.
 
-- [ ] **STD2-F3 — Match image and table extraction structure.** **Depends on:**
+- [x] **STD2-F3 — Match image and table extraction structure.** **Depends on:**
   STD2. **Parallel:** yes, with STD2-F1 and STD2-F2. Compare the Java and Rust
   image/table artifacts in the ten fixtures and correct the shared extraction
   paths in `crates/opendataloader_core/src/parser.rs`, `images.rs`, and
@@ -557,6 +557,12 @@ finished modules.
   structure match the ten JSON oracles where source artifacts support them;
   Markdown image/table bytes match those same cases; focused tests cover one
   image-bearing PDF and one bordered table.
+  Implemented graphics-path tracking for real line segments, filtered
+  page-background and filled-rectangle noise from border-table detection,
+  grouped connected grid lines, and recursively inspected Form XObjects for
+  nested images with transformed bounds. Table row/cell structures now match
+  the committed table-heavy fixtures; remaining unsupported image artifacts
+  and semantic-content differences are carried to STD3.
 
 - [ ] **STD3 — Fix the ten-fixture regressions until they pass.**
   **Depends on:** STD2 and all fix tasks created by STD2. **Parallel:** follow

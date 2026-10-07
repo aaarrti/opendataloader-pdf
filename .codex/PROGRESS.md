@@ -188,3 +188,12 @@ text chunks retain page-space bounds instead of full-page rectangles. Added a
 fixture-backed positioned-text and non-table assertion. `cargo test -p
 opendataloader_core --locked parser_` passes; the active ten-fixture regression
 still reports the separately scoped image/table mismatches for STD2-F3.
+
+2026-10-07 — Completed STD2-F3. Updated `parser.rs` to preserve transformed
+line segments and recursively inspect Form XObjects for nested image
+invocations. Updated `semantics.rs` to ignore page-background and filled
+rectangle noise, group connected border lines, and reject one-cell false
+tables. Table row/cell structures now match the table-heavy committed
+fixtures; unsupported image artifacts and remaining semantic-content parity
+gaps remain for STD3. Core tests pass; the active ten-fixture regression still
+reports the documented JSON and Markdown mismatches.
