@@ -581,7 +581,10 @@ finished modules.
   Current iteration: filtered thin page-edge frame lines from border-table
   detection and added a focused regression test. The ten-fixture gate still
   reports JSON and Markdown mismatches for all ten cases, so this task remains
-  incomplete.
+  incomplete. Added parser-side PDF structure-tree ParentTree resolution so
+  MCIDs can carry roles such as Figure instead of the broad marked-content P
+  scope; a focused parser test covers the mapping. Remaining mismatches are
+  image inclusion/order and full tagged table/semantic reconstruction.
 
 - [x] **STD3-F1 — Preserve source font names and avoid false headings.**
   **Depends on:** STD3. **Parallel:** yes, with the remaining STD3 fixes.

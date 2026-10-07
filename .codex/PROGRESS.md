@@ -236,3 +236,11 @@ frames from becoming fabricated tables; added a colocated regression test.
 `cargo check --workspace --locked` passes and 26 non-regression workspace
 tests pass. The active ten-fixture gate still reports JSON and Markdown
 mismatches for all ten fixtures, so STD3 remains incomplete.
+
+2026-10-07 — Advanced STD3 with parser-side PDF structure-tree role
+resolution. ParentTree MCID mappings now carry roles such as Figure onto
+parser chunks instead of retaining only broad marked-content P scopes; added
+a focused parser test. `cargo check --workspace --locked` and strict
+workspace Clippy pass; the active ten-fixture gate still reports JSON and
+Markdown mismatches from remaining image inclusion/order and tagged table or
+semantic reconstruction gaps, so STD3 remains incomplete.

@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use lopdf::{Dictionary, Document as PdfDocument, Object, content::Operation};
 
@@ -37,17 +37,31 @@ pub(crate) fn parse_document(path: &Path) -> Result<Document, ConversionError> {
 
     let pages = pdf.get_pages();
     let metadata = read_metadata(&pdf);
+    let structure_roles = structure_roles(&pdf);
     let mut parsed_pages = Vec::with_capacity(pages.len());
     for (number, page_id) in pages {
         let (width, height) = page_bounds(&pdf, page_id).map_err(|reason| ConversionError::Processing {
             path: path.to_path_buf(),
             reason,
         })?;
-        let chunks = page_chunks(&pdf, page_id, number as usize - 1, width, height).map_err(|reason| {
-            ConversionError::Processing {
-                path: path.to_path_buf(),
-                reason,
-            }
+        let parent_key = pdf
+            .get_dictionary(page_id)
+            .ok()
+            .and_then(|page| page.get(b"StructParents").ok())
+            .and_then(|object| object.as_i64().ok())
+            .unwrap_or(-1);
+        let chunks = page_chunks(
+            &pdf,
+            page_id,
+            number as usize - 1,
+            width,
+            height,
+            parent_key,
+            &structure_roles,
+        )
+        .map_err(|reason| ConversionError::Processing {
+            path: path.to_path_buf(),
+            reason,
         })?;
         let page = Page {
             index: number as usize - 1,
@@ -70,6 +84,38 @@ pub(crate) fn parse_document(path: &Path) -> Result<Document, ConversionError> {
         elements: Vec::new(),
     };
     Ok(document)
+}
+
+fn structure_roles(pdf: &PdfDocument) -> BTreeMap<(i64, u64), String> {
+    let Ok(root) = pdf
+        .catalog()
+        .and_then(|catalog| catalog.get_deref(b"StructTreeRoot", pdf))
+        .and_then(Object::as_dict)
+    else {
+        return BTreeMap::new();
+    };
+    let Ok(parent_tree) = root.get_deref(b"ParentTree", pdf).and_then(Object::as_dict) else {
+        return BTreeMap::new();
+    };
+    let Ok(nums) = parent_tree.get_deref(b"Nums", pdf).and_then(Object::as_array) else {
+        return BTreeMap::new();
+    };
+    let mut roles = BTreeMap::new();
+    for pair in nums.chunks_exact(2) {
+        let Ok(parent_key) = pair[0].as_i64() else { continue };
+        let Ok((_, entries_object)) = pdf.dereference(&pair[1]) else { continue };
+        let Ok(entries) = entries_object.as_array() else { continue };
+        for (mcid, entry) in entries.iter().enumerate() {
+            let Ok(structure) = pdf.dereference(entry).and_then(|(_, object)| object.as_dict()) else {
+                continue;
+            };
+            let Ok(role) = structure.get_deref(b"S", pdf).and_then(Object::as_name) else {
+                continue;
+            };
+            roles.insert((parent_key, mcid as u64), String::from_utf8_lossy(role).into_owned());
+        }
+    }
+    roles
 }
 
 fn read_metadata(pdf: &PdfDocument) -> DocumentMetadata {
@@ -154,6 +200,8 @@ fn page_chunks(
     page_index: usize,
     width: f64,
     height: f64,
+    parent_key: i64,
+    structure_roles: &BTreeMap<(i64, u64), String>,
 ) -> Result<Vec<ParserChunk>, String> {
     let content = pdf
         .get_and_decode_page_content(page_id)
@@ -188,6 +236,12 @@ fn page_chunks(
                     };
                     dictionary.get(b"MCID").ok()?.as_i64().ok().map(|id| id as u64)
                 });
+                if let Some(mcid) = text_state.structure_id {
+                    text_state.pdfua_tag = structure_roles
+                        .get(&(parent_key, mcid))
+                        .cloned()
+                        .or(text_state.pdfua_tag.clone());
+                }
             }
             "EMC" => {
                 if let Some((tag, id)) = marked_content_stack.pop() {
@@ -834,6 +888,15 @@ mod tests {
             .collect::<String>();
         assert!(text.contains('感'));
         assert!(!text.chars().any(char::is_control));
+        Ok(())
+    }
+
+    #[test]
+    fn parser_resolves_structure_tree_roles_for_images() -> anyhow::Result<()> {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../data/stg/10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj.pdf");
+        let pdf = PdfDocument::load(&path)?;
+        assert!(structure_roles(&pdf).values().any(|role| role == "Figure"));
         Ok(())
     }
 }
