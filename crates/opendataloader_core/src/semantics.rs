@@ -85,7 +85,12 @@ pub fn reconstruct_semantics(document: &mut Document) {
                     text: caption,
                     linked_content_id: None,
                 });
-            } else if let Some(level) = tagged_heading_level(group).or_else(|| heading_level(group)) {
+            } else if let Some(level) = tagged_heading_level(group).or_else(|| {
+                group
+                    .first()
+                    .filter(|line| line.common.pdfua_tag.is_none())
+                    .and_then(|_| heading_level(group))
+            }) {
                 document.elements.push(SemanticElement::Heading {
                     common,
                     level,
@@ -315,9 +320,10 @@ fn text_lines(page: &Page) -> Vec<TextLine> {
     }) {
         if let Some(line) = lines
             .iter_mut()
-            .find(|line: &&mut TextLine| same_line(&line.common.bounds, &chunk.bounds))
+            .find(|line: &&mut TextLine| {
+                line.common.pdfua_tag == chunk.pdfua_tag && same_line(&line.common.bounds, &chunk.bounds)
+            })
         {
-            line.text.push(' ');
             line.text.push_str(&chunk.text);
             line.common.bounds = union_bounds(line.common.bounds, chunk.bounds);
         } else {

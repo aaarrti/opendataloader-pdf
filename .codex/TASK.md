@@ -609,3 +609,11 @@ finished modules.
   the existing PNG path, preserving per-image failure isolation. Added a
   focused writer test; filtered inline encodings remain outside the supported
   `lopdf` parser boundary and the ten-fixture STD3 regression remains active.
+
+- [x] **STD3-F4 — Preserve text runs during semantic line reconstruction.**
+  **Depends on:** STD3-F2. Same-baseline parser chunks must not gain synthetic
+  spaces between glyph runs, and tagged chunks must remain grouped by their
+  marked-content tag. Updated `semantics.rs` to concatenate parser text as
+  extracted, group same-tag runs, and reserve font-size heading inference for
+  untagged text. The full STD3 regression remains active because structural
+  tag mapping and image ordering still differ in the ten-fixture corpus.

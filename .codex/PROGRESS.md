@@ -222,3 +222,10 @@ isolated per-image failures. Added a focused inline-image writer test.
 and `cargo check --workspace --locked` passes; the active ten-fixture STD3
 regression still reports its documented JSON/Markdown mismatches, and filtered
 inline encodings remain outside the current `lopdf` parser boundary.
+
+2026-10-07 — Completed STD3-F4. Semantic line reconstruction no longer inserts
+synthetic spaces between same-baseline parser chunks, groups tagged runs by
+marked-content tag, and skips font-size heading inference for tagged text.
+The active ten-fixture STD3 regression still fails on broader structural-tag
+mapping and image-order parity; expected fixtures and comparisons remain
+unchanged.
