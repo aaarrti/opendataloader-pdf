@@ -258,3 +258,10 @@ control-character text is gone from the regression output. `cargo check
 --workspace --locked` passes; `cargo test --workspace --locked` still reports
 the documented ten-fixture semantic/table/image mismatches, so STD3 remains
 incomplete.
+
+2026-10-08 — Advanced STD3 with a scoped semantic fix. Semantic text lines now
+retain parser structure IDs, so adjacent tagged runs from different structure
+elements remain separate paragraphs. Added a focused regression test. The
+focused test, `cargo check --workspace --locked`, `cargo fmt --all -- --check`,
+and `git diff --check` pass; the full ten-fixture regression still reports the
+documented remaining mismatches, so STD3 remains incomplete.

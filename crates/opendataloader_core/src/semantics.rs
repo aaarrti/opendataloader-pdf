@@ -289,6 +289,7 @@ fn positioned_text_lines(page: &Page) -> Vec<TextLine> {
                 },
                 text: text.text.clone(),
                 font: text.font.clone(),
+                structure_id: text.structure_id,
             }),
             _ => None,
         })
@@ -323,6 +324,7 @@ struct TextLine {
     common: ElementCommon,
     text: String,
     font: FontInfo,
+    structure_id: Option<u64>,
 }
 
 fn text_lines(page: &Page) -> Vec<TextLine> {
@@ -331,12 +333,11 @@ fn text_lines(page: &Page) -> Vec<TextLine> {
         ParserChunk::Text(text) => Some(text),
         _ => None,
     }) {
-        if let Some(line) = lines
-            .iter_mut()
-            .find(|line: &&mut TextLine| {
-                line.common.pdfua_tag == chunk.pdfua_tag && same_line(&line.common.bounds, &chunk.bounds)
-            })
-        {
+        if let Some(line) = lines.iter_mut().find(|line: &&mut TextLine| {
+            line.common.pdfua_tag == chunk.pdfua_tag
+                && line.structure_id == chunk.structure_id
+                && same_line(&line.common.bounds, &chunk.bounds)
+        }) {
             line.text.push_str(&chunk.text);
             line.common.bounds = union_bounds(line.common.bounds, chunk.bounds);
         } else {
@@ -349,6 +350,7 @@ fn text_lines(page: &Page) -> Vec<TextLine> {
                 },
                 text: chunk.text.clone(),
                 font: chunk.font.clone(),
+                structure_id: chunk.structure_id,
             });
         }
     }
@@ -382,17 +384,25 @@ fn heading_level(lines: &[TextLine]) -> Option<u8> {
 }
 
 fn same_structure_tag(left: &TextLine, right: &TextLine) -> bool {
-    left.common.pdfua_tag == right.common.pdfua_tag
+    left.common.pdfua_tag == right.common.pdfua_tag && left.structure_id == right.structure_id
 }
 
 fn tagged_heading_level(lines: &[TextLine]) -> Option<u8> {
     let tag = lines.first()?.common.pdfua_tag.as_deref()?;
-    tag.strip_prefix('H')?.parse().ok().filter(|level| (1..=6).contains(level))
+    tag.strip_prefix('H')?
+        .parse()
+        .ok()
+        .filter(|level| (1..=6).contains(level))
 }
 
 fn tagged_caption(lines: &[TextLine]) -> Option<String> {
-    (lines.first()?.common.pdfua_tag.as_deref() == Some("Caption"))
-        .then(|| lines.iter().map(|line| line.text.as_str()).collect::<Vec<_>>().join(" "))
+    (lines.first()?.common.pdfua_tag.as_deref() == Some("Caption")).then(|| {
+        lines
+            .iter()
+            .map(|line| line.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ")
+    })
 }
 
 fn tagged_list(line: &TextLine) -> Option<(ListStyle, String)> {
@@ -548,9 +558,42 @@ mod tests {
             elements: Vec::new(),
         };
         reconstruct_semantics(&mut document);
-        assert!(matches!(document.elements[0], SemanticElement::Heading { level: 2, .. }));
+        assert!(matches!(
+            document.elements[0],
+            SemanticElement::Heading { level: 2, .. }
+        ));
         assert!(matches!(document.elements[1], SemanticElement::Caption { .. }));
         assert!(matches!(document.elements[2], SemanticElement::List { ref items, .. } if items.len() == 2));
+    }
+
+    #[test]
+    fn keeps_tagged_structure_runs_as_separate_paragraphs() {
+        let mut first = tagged_text("first", 700.0, "P");
+        let mut second = tagged_text("second", 680.0, "P");
+        if let ParserChunk::Text(chunk) = &mut first {
+            chunk.structure_id = Some(1);
+        }
+        if let ParserChunk::Text(chunk) = &mut second {
+            chunk.structure_id = Some(2);
+        }
+        let mut document = Document {
+            file_name: "structure-runs.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 300.0,
+                height: 800.0,
+                chunks: vec![first, second],
+            }],
+            elements: Vec::new(),
+        };
+
+        reconstruct_semantics(&mut document);
+
+        assert_eq!(document.elements.len(), 2);
+        assert!(matches!(document.elements[0], SemanticElement::Paragraph { ref text, .. } if text == "first"));
+        assert!(matches!(document.elements[1], SemanticElement::Paragraph { ref text, .. } if text == "second"));
     }
 
     #[test]

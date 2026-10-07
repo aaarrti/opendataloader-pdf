@@ -593,6 +593,11 @@ finished modules.
   fonts whose ToUnicode map is stored on the descendant font dictionary;
   focused embedded-font tests pass and the regression no longer emits parser-
   produced control-character text, but the gate remains incomplete.
+  Added the scoped semantic fix to carry parser structure IDs into text lines
+  and require matching IDs when merging tagged runs or joining paragraphs;
+  added a regression test for adjacent tagged paragraphs. The focused test,
+  workspace type check, formatting check, and diff check pass, while all ten
+  fixture comparisons still fail on remaining parity gaps.
 
 - [x] **STD3-F1 — Preserve source font names and avoid false headings.**
   **Depends on:** STD3. **Parallel:** yes, with the remaining STD3 fixes.
