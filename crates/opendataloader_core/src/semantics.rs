@@ -330,9 +330,7 @@ fn text_lines(page: &Page) -> Vec<TextLine> {
         _ => None,
     }) {
         if let Some(line) = lines.iter_mut().find(|line: &&mut TextLine| {
-            line.common.pdfua_tag == chunk.pdfua_tag
-                && line.structure_id == chunk.structure_id
-                && same_line(&line.common.bounds, &chunk.bounds)
+            line.common.pdfua_tag == chunk.pdfua_tag && same_line(&line.common.bounds, &chunk.bounds)
         }) {
             line.text.push_str(&chunk.text);
             line.common.bounds = union_bounds(line.common.bounds, chunk.bounds);
@@ -590,6 +588,38 @@ mod tests {
         assert_eq!(document.elements.len(), 2);
         assert!(matches!(document.elements[0], SemanticElement::Paragraph { ref text, .. } if text == "first"));
         assert!(matches!(document.elements[1], SemanticElement::Paragraph { ref text, .. } if text == "second"));
+    }
+
+    #[test]
+    fn groups_same_line_tagged_runs_with_different_structure_ids() {
+        let mut first = tagged_text("first", 700.0, "P");
+        let mut second = tagged_text("second", 700.0, "P");
+        if let ParserChunk::Text(chunk) = &mut first {
+            chunk.structure_id = Some(1);
+            chunk.bounds.right = 140.0;
+        }
+        if let ParserChunk::Text(chunk) = &mut second {
+            chunk.structure_id = Some(2);
+            chunk.bounds.left = 150.0;
+        }
+        let mut document = Document {
+            file_name: "same-line-runs.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 300.0,
+                height: 800.0,
+                chunks: vec![first, second],
+            }],
+            elements: Vec::new(),
+        };
+
+        reconstruct_semantics(&mut document);
+
+        assert!(
+            matches!(document.elements.as_slice(), [SemanticElement::Paragraph { text, .. }] if text == "firstsecond")
+        );
     }
 
     #[test]

@@ -273,3 +273,10 @@ paragraph and figure roles. Focused parser tests, `cargo check --workspace
 --locked`, formatting, and `git diff --check` pass. The active ten-fixture
 regression remains failing on separate paragraph-grouping and table-structure
 mismatches, so STD3 remains incomplete.
+
+2026-10-08 — Completed STD3-F6. Semantic reconstruction now combines same-tag,
+same-baseline parser chunks even when their MCIDs differ, while vertically
+distinct tagged runs remain separate. Added a colocated regression test.
+`cargo fmt --all`, `cargo check --workspace --locked`, and the 29 passing
+non-regression workspace tests pass; the ten-fixture regression still reports
+JSON and Markdown mismatches for all ten fixtures, so STD3 remains incomplete.

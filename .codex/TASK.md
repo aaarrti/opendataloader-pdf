@@ -646,3 +646,10 @@ finished modules.
   and `Figure`; add a fixture-backed role test. The ten-fixture regression
   remains active because paragraph grouping and table reconstruction still
   have separate mismatches.
+
+- [x] **STD3-F6 — Group same-line tagged text runs.** **Depends on:** STD3-F2.
+  Preserve separate vertically distinct tagged structure runs, but combine
+  parser chunks that share a PDF structure tag and visual baseline even when
+  their MCIDs differ. Added same-line grouping in `semantics.rs` and a
+  colocated regression test; the ten-fixture gate remains active for further
+  structural mismatches.
