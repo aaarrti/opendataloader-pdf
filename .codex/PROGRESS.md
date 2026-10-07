@@ -199,9 +199,17 @@ gaps remain for STD3. Core tests pass; the active ten-fixture regression still
 reports the documented JSON and Markdown mismatches.
 
 2026-10-07 — Advanced STD3 with STD3-F1. Parser font metadata now resolves
-resource aliases through `BaseFont`, and semantic reconstruction no longer
-classifies long large-font body blocks as headings; added a focused regression
-test. Core unit tests and type checks pass, but the active ten-fixture gate
-still fails. Added STD3-F2 for tagged-PDF semantic/text segmentation and
-STD3-F3 for remaining inline-image extraction gaps; expected fixtures remain
-unchanged.
+ resource aliases through `BaseFont`, and semantic reconstruction no longer
+ classifies long large-font body blocks as headings; added a focused regression
+ test. Core unit tests and type checks pass, but the active ten-fixture gate
+ still fails. Added STD3-F2 for tagged-PDF semantic/text segmentation and
+ STD3-F3 for remaining inline-image extraction gaps; expected fixtures remain
+ unchanged.
+
+2026-10-07 — Completed STD3-F2. Parser now tracks marked-content `BMC`/`BDC`/
+`EMC` scopes and `MCID` values, carries PDF tags onto text and image chunks,
+and semantic reconstruction honors tagged headings, captions, paragraphs, and
+list items while preserving tagged block boundaries. Added a focused tagged-
+semantics test. `cargo test -p opendataloader_core --locked`, `cargo check
+--workspace --locked`, and strict workspace Clippy pass; STD3-F3 and the
+remaining full-fixture parity work are unchanged.

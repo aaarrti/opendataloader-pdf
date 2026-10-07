@@ -587,12 +587,18 @@ finished modules.
   tests pass; the active ten-fixture regression still exposes separate
   structural-tag, text-segmentation, and inline-image gaps.
 
-- [ ] **STD3-F2 — Use tagged PDF structure and preserve semantic text runs.**
+- [x] **STD3-F2 — Use tagged PDF structure and preserve semantic text runs.**
   **Depends on:** STD3. **Parallel:** yes, with STD3-F3. Remaining corpus
   mismatches show missing captions, text blocks, list items, and heading levels,
   plus paragraph grouping that differs from the Java oracle. Map marked-content
   and structure-tree tags to parser chunks where present, and preserve line and
-  block boundaries needed by semantic reconstruction.
+  block boundaries needed by semantic reconstruction. Implemented marked-content
+  scope tracking for `BMC`/`BDC`/`EMC`, including `MCID` extraction, and carried
+  tags through text/image chunks into tagged heading, caption, paragraph, and
+  list reconstruction. Added a focused tagged-semantics regression test; core
+  tests, workspace type checks, and strict Clippy pass. Full ten-fixture parity
+  remains blocked by the separately scoped STD3-F3 inline-image gaps and any
+  newly exposed corpus-specific semantic differences.
 
 - [ ] **STD3-F3 — Complete unsupported image extraction paths.** **Depends on:**
   STD3. **Parallel:** yes, with STD3-F2. Remaining image-count differences

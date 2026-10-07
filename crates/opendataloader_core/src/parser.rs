@@ -161,6 +161,7 @@ fn page_chunks(
     let fonts = pdf.get_page_fonts(page_id).map_err(|error| error.to_string())?;
     let mut text_state = TextState::default();
     let mut graphics_stack = Vec::new();
+    let mut marked_content_stack = Vec::new();
     let mut path_point = None;
     let mut chunks = Vec::new();
     for (parser_order, operation) in content.operations.iter().enumerate() {
@@ -173,6 +174,27 @@ fn page_chunks(
                 }
             }
             "cm" => concatenate_matrix(&mut text_state.ctm, &operation.operands),
+            "BMC" | "BDC" => {
+                marked_content_stack.push((text_state.pdfua_tag.clone(), text_state.structure_id));
+                text_state.pdfua_tag = operation
+                    .operands
+                    .first()
+                    .and_then(|object| object.as_name().ok())
+                    .map(|name| String::from_utf8_lossy(name).into_owned());
+                text_state.structure_id = operation.operands.get(1).and_then(|object| {
+                    let dictionary = match object {
+                        Object::Reference(id) => pdf.get_object(*id).ok()?.as_dict().ok()?,
+                        object => object.as_dict().ok()?,
+                    };
+                    dictionary.get(b"MCID").ok()?.as_i64().ok().map(|id| id as u64)
+                });
+            }
+            "EMC" => {
+                if let Some((tag, id)) = marked_content_stack.pop() {
+                    text_state.pdfua_tag = tag;
+                    text_state.structure_id = id;
+                }
+            }
             "Tf" => {
                 text_state.font_name = operation
                     .operands
@@ -232,8 +254,8 @@ fn page_chunks(
                 bounds: image_bounds(&text_state.ctm),
                 object_reference: None,
                 parser_order,
-                structure_id: None,
-                pdfua_tag: None,
+                structure_id: text_state.structure_id,
+                pdfua_tag: text_state.pdfua_tag.clone(),
             })),
             "TJ" => {
                 let Some(items) = operation.operands.first().and_then(|object| object.as_array().ok()) else {
@@ -272,8 +294,8 @@ fn page_chunks(
                         bounds,
                         object_reference: object_reference.clone(),
                         parser_order,
-                        structure_id: None,
-                        pdfua_tag: None,
+                        structure_id: text_state.structure_id,
+                        pdfua_tag: text_state.pdfua_tag.clone(),
                     }));
                 }
             }
@@ -317,8 +339,8 @@ fn page_chunks(
                 character_spacing: None,
                 font: FontInfo::default(),
                 parser_order: content.operations.len(),
-                structure_id: None,
-                pdfua_tag: None,
+                structure_id: text_state.structure_id,
+                pdfua_tag: text_state.pdfua_tag.clone(),
             }));
         }
     }
@@ -335,6 +357,8 @@ struct TextState {
     display_font_name: Option<String>,
     font_size: f64,
     ctm: [f64; 6],
+    structure_id: Option<u64>,
+    pdfua_tag: Option<String>,
 }
 
 impl TextState {
@@ -382,6 +406,8 @@ impl Default for TextState {
             display_font_name: None,
             font_size: 0.0,
             ctm: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            structure_id: None,
+            pdfua_tag: None,
         }
     }
 }
@@ -496,8 +522,8 @@ fn push_text_chunk(
             ..Default::default()
         },
         parser_order,
-        structure_id: None,
-        pdfua_tag: None,
+        structure_id: state.structure_id,
+        pdfua_tag: state.pdfua_tag.clone(),
     }));
 }
 

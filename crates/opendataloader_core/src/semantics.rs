@@ -34,11 +34,13 @@ pub fn reconstruct_semantics(document: &mut Document) {
             .collect::<Vec<_>>();
         let mut index = 0;
         while index < lines.len() {
-            if let Some((style, _)) = list_marker(&lines[index].text) {
+            if let Some((style, _)) = tagged_list(&lines[index]).or_else(|| list_marker(&lines[index].text)) {
                 let start = index;
                 let mut items = Vec::new();
                 while index < lines.len() {
-                    let Some((item_style, item_text)) = list_marker(&lines[index].text) else {
+                    let Some((item_style, item_text)) =
+                        tagged_list(&lines[index]).or_else(|| list_marker(&lines[index].text))
+                    else {
                         break;
                     };
                     if item_style != style {
@@ -63,7 +65,10 @@ pub fn reconstruct_semantics(document: &mut Document) {
 
             let start = index;
             index += 1;
-            while index < lines.len() && joins_paragraph(&lines[index - 1], &lines[index]) {
+            while index < lines.len()
+                && same_structure_tag(&lines[index - 1], &lines[index])
+                && joins_paragraph(&lines[index - 1], &lines[index])
+            {
                 index += 1;
             }
             let group = &lines[start..index];
@@ -74,7 +79,13 @@ pub fn reconstruct_semantics(document: &mut Document) {
                 .collect::<Vec<_>>()
                 .join(" ");
             let font = group[0].font.clone();
-            if let Some(level) = heading_level(group) {
+            if let Some(caption) = tagged_caption(group) {
+                document.elements.push(SemanticElement::Caption {
+                    common,
+                    text: caption,
+                    linked_content_id: None,
+                });
+            } else if let Some(level) = tagged_heading_level(group).or_else(|| heading_level(group)) {
                 document.elements.push(SemanticElement::Heading {
                     common,
                     level,
@@ -256,7 +267,7 @@ fn positioned_text_lines(page: &Page) -> Vec<TextLine> {
                     id: None,
                     page_index: text.page_index,
                     bounds: text.bounds,
-                    pdfua_tag: None,
+                    pdfua_tag: text.pdfua_tag.clone(),
                 },
                 text: text.text.clone(),
                 font: text.font.clone(),
@@ -315,7 +326,7 @@ fn text_lines(page: &Page) -> Vec<TextLine> {
                     id: None,
                     page_index: chunk.page_index,
                     bounds: chunk.bounds,
-                    pdfua_tag: None,
+                    pdfua_tag: chunk.pdfua_tag.clone(),
                 },
                 text: chunk.text.clone(),
                 font: chunk.font.clone(),
@@ -351,6 +362,25 @@ fn heading_level(lines: &[TextLine]) -> Option<u8> {
     (size >= 14.0 && text_len <= 80).then(|| ((24.0 - size) / 2.0).round().clamp(1.0, 6.0) as u8)
 }
 
+fn same_structure_tag(left: &TextLine, right: &TextLine) -> bool {
+    left.common.pdfua_tag == right.common.pdfua_tag
+}
+
+fn tagged_heading_level(lines: &[TextLine]) -> Option<u8> {
+    let tag = lines.first()?.common.pdfua_tag.as_deref()?;
+    tag.strip_prefix('H')?.parse().ok().filter(|level| (1..=6).contains(level))
+}
+
+fn tagged_caption(lines: &[TextLine]) -> Option<String> {
+    (lines.first()?.common.pdfua_tag.as_deref() == Some("Caption"))
+        .then(|| lines.iter().map(|line| line.text.as_str()).collect::<Vec<_>>().join(" "))
+}
+
+fn tagged_list(line: &TextLine) -> Option<(ListStyle, String)> {
+    let tag = line.common.pdfua_tag.as_deref()?;
+    matches!(tag, "L" | "LI").then(|| (ListStyle::Unordered, line.text.clone()))
+}
+
 fn list_marker(text: &str) -> Option<(ListStyle, String)> {
     let trimmed = text.trim_start();
     let (style, rest) = if let Some(rest) = trimmed.strip_prefix("- ").or_else(|| trimmed.strip_prefix("* ")) {
@@ -377,7 +407,7 @@ fn common_for_lines(lines: &[TextLine]) -> ElementCommon {
             .iter()
             .skip(1)
             .fold(first.bounds, |bounds, line| union_bounds(bounds, line.common.bounds)),
-        pdfua_tag: None,
+        pdfua_tag: first.pdfua_tag.clone(),
     }
 }
 
@@ -414,6 +444,14 @@ mod tests {
             structure_id: None,
             pdfua_tag: None,
         })
+    }
+
+    fn tagged_text(value: &str, top: f64, tag: &str) -> ParserChunk {
+        let ParserChunk::Text(mut chunk) = text(value, top, 10.0) else {
+            unreachable!()
+        };
+        chunk.pdfua_tag = Some(tag.into());
+        ParserChunk::Text(chunk)
     }
 
     #[test]
@@ -469,6 +507,31 @@ mod tests {
         };
         reconstruct_semantics(&mut document);
         assert!(matches!(document.elements[0], SemanticElement::Paragraph { .. }));
+    }
+
+    #[test]
+    fn preserves_tagged_headings_captions_and_lists() {
+        let mut document = Document {
+            file_name: "tagged.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 300.0,
+                height: 800.0,
+                chunks: vec![
+                    tagged_text("Tagged heading", 700.0, "H2"),
+                    tagged_text("Figure caption", 650.0, "Caption"),
+                    tagged_text("first item", 600.0, "LI"),
+                    tagged_text("second item", 580.0, "LI"),
+                ],
+            }],
+            elements: Vec::new(),
+        };
+        reconstruct_semantics(&mut document);
+        assert!(matches!(document.elements[0], SemanticElement::Heading { level: 2, .. }));
+        assert!(matches!(document.elements[1], SemanticElement::Caption { .. }));
+        assert!(matches!(document.elements[2], SemanticElement::List { ref items, .. } if items.len() == 2));
     }
 
     #[test]
