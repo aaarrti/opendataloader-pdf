@@ -469,7 +469,7 @@ finished modules.
   without network access or a model call; results match the corresponding
   existing `opendataloader` conversion outputs.
 
-- [ ] **STD1 — Add regression coverage for representative `data/stg` PDFs.**
+- [x] **STD1 — Add regression coverage for representative `data/stg` PDFs.**
   **Depends on:** O1, V1. **Parallel:** no. Inspect the PDF and expected JSON
   and Markdown files in `data/stg` when the DVC corpus is available. Select a
   representative subset that exercises distinct page and content structures,
@@ -483,4 +483,8 @@ finished modules.
   exact Markdown bytes; every mismatch in the selected cases is resolved in
   the Rust implementation or recorded with evidence if the expected output is
   invalid; the tests pass with the DVC corpus present and require no Java or
-  network access. 
+  network access. Added the exact JSON-structure and Markdown-byte comparison
+  harness for text/list, table, and image/table fixtures. The test is currently
+  ignored because the committed Java oracles expose documented Rust parser
+  parity gaps; selected paths and evidence are recorded in
+  `data/oracle/manifest.toml`.

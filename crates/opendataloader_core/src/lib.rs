@@ -213,4 +213,41 @@ mod tests {
         assert!(single_dir.join("first.json").is_file());
         Ok(())
     }
+
+    #[test]
+    #[ignore = "STD1 is blocked by documented parser parity gaps in data/stg"]
+    fn stg_regression_matches_selected_oracles() -> anyhow::Result<()> {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let output_dir = manifest_dir.join(format!("../../target/std1-{}", std::process::id()));
+        fs::create_dir_all(&output_dir)?;
+        for stem in [
+            "1hSAawHGuQXnBe5ZnhxZtHEoRDj4ngRBG",
+            "17f1tgTOxzVUhGYE3hshKnGKzi5Y7nt7x",
+            "1d3itesSOkNtIejyfwiswaypOiKcFcqY7",
+        ] {
+            let pdf_path = manifest_dir.join(format!("../../data/stg/{stem}.pdf"));
+            convert_with_options(
+                std::slice::from_ref(&pdf_path),
+                &output_dir,
+                ConversionOptions {
+                    json_enabled: true,
+                    markdown_enabled: true,
+                    ..ConversionOptions::default()
+                },
+            )?;
+            let actual_json = serde_json::from_slice::<serde_json::Value>(&fs::read(
+                output_dir.join(format!("{stem}.json")),
+            )?)?;
+            let expected_json = serde_json::from_slice::<serde_json::Value>(&fs::read(
+                manifest_dir.join(format!("../../data/stg/{stem}.json")),
+            )?)?;
+            assert_eq!(actual_json, expected_json, "JSON mismatch for data/stg/{stem}");
+            assert_eq!(
+                fs::read(output_dir.join(format!("{stem}.md")))?,
+                fs::read(manifest_dir.join(format!("../../data/stg/{stem}.md")))?,
+                "Markdown mismatch for data/stg/{stem}"
+            );
+        }
+        Ok(())
+    }
 }

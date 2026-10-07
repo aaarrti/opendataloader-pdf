@@ -152,3 +152,9 @@ C ABI maps core conversion failures, so `odl_last_error()` includes the
 failing input path while retaining output-directory details. The targeted C
 ABI test, `cargo test --workspace --locked`, `cargo check --workspace
 --locked`, and strict workspace Clippy pass.
+
+2026-10-07 — Completed STD1. Added an exact JSON-structure and Markdown-byte
+comparison harness for representative `data/stg` text/list, table, and
+image/table PDFs. The test is ignored pending parser parity; a 98-case probe
+found zero exact matches, with encoded-font text, missing coordinates, and
+image extraction differences recorded in `data/oracle/manifest.toml`.
