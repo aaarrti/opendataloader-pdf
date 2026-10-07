@@ -463,3 +463,19 @@ finished modules.
   register the exported `parse_pdf` function tool; local tool tests pass
   without network access or a model call; results match the corresponding
   existing `opendataloader` conversion outputs.
+
+- [ ] **STD1 — Add regression coverage for representative `data/std` PDFs.**
+  **Depends on:** O1, V1. **Parallel:** no. Inspect the PDF and expected JSON
+  and Markdown files in `data/std` when the DVC corpus is available. Select a
+  representative subset that exercises distinct page and content structures,
+  then add end-to-end Rust tests that convert each PDF and compare it with its
+  paired expected outputs. Record the selected fixture paths and covered
+  behaviors in the corpus manifest. Treat the committed expected files as the
+  oracle: investigate differences and fix the Rust implementation rather than
+  weakening comparisons or regenerating expected outputs from Rust. Keep the
+  fixture tests with the conversion code they exercise. **Acceptance:** tests
+  cover several representative `data/std` PDFs and compare JSON structure and
+  exact Markdown bytes; every mismatch in the selected cases is resolved in
+  the Rust implementation or recorded with evidence if the expected output is
+  invalid; the tests pass with the DVC corpus present and require no Java or
+  network access.
