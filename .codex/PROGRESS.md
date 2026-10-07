@@ -213,3 +213,12 @@ list items while preserving tagged block boundaries. Added a focused tagged-
 semantics test. `cargo test -p opendataloader_core --locked`, `cargo check
 --workspace --locked`, and strict workspace Clippy pass; STD3-F3 and the
 remaining full-fixture parity work are unchanged.
+
+2026-10-07 — Completed STD3-F3 for supported inline streams. Image chunks now
+retain raw 8-bit grayscale/RGB inline payloads from `BI` operations, and the
+existing external-image writer emits them as PNG files while preserving
+isolated per-image failures. Added a focused inline-image writer test.
+`cargo test -p opendataloader_core --locked` passes all 25 non-regression tests
+and `cargo check --workspace --locked` passes; the active ten-fixture STD3
+regression still reports its documented JSON/Markdown mismatches, and filtered
+inline encodings remain outside the current `lopdf` parser boundary.

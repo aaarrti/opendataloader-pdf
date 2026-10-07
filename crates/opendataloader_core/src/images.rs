@@ -34,22 +34,27 @@ pub fn write_external_images(
         for chunk in &page.chunks {
             let ParserChunk::Image(image) = chunk else { continue };
             image_index += 1;
-            let Some(object_name) = image.object_reference.as_deref() else {
-                continue;
-            };
-            let Some(stream) = image_stream(&pdf, page.index, object_name) else {
-                continue;
-            };
             let file_name = format!("imageFile{image_index}.{extension}");
             let destination = image_dir.join(&file_name);
-            let written = match extension {
-                "jpeg" => {
-                    stream
-                        .filters()
-                        .is_ok_and(|filters| filters.iter().any(|filter| filter == b"DCTDecode"))
-                        && fs::write(&destination, &stream.content).is_ok()
+            let written = if let Some(inline) = &image.inline_image {
+                extension == "png"
+                    && write_png_data(inline.width, inline.height, inline.channels, &inline.data, &destination).is_ok()
+            } else {
+                let Some(object_name) = image.object_reference.as_deref() else {
+                    continue;
+                };
+                let Some(stream) = image_stream(&pdf, page.index, object_name) else {
+                    continue;
+                };
+                match extension {
+                    "jpeg" => {
+                        stream
+                            .filters()
+                            .is_ok_and(|filters| filters.iter().any(|filter| filter == b"DCTDecode"))
+                            && fs::write(&destination, &stream.content).is_ok()
+                    }
+                    _ => write_png_stream(stream, &destination).is_ok(),
                 }
-                _ => write_png_stream(stream, &destination).is_ok(),
             };
             if !written {
                 continue;
@@ -79,14 +84,18 @@ fn write_png_stream(stream: &lopdf::Stream, destination: &Path) -> anyhow::Resul
     let width = stream.dict.get(b"Width")?.as_i64()? as u32;
     let height = stream.dict.get(b"Height")?.as_i64()? as u32;
     let channels = match stream.dict.get(b"ColorSpace")?.as_name()? {
-        b"DeviceGray" => 1,
-        b"DeviceRGB" => 3,
+        b"DeviceGray" => 1u8,
+        b"DeviceRGB" => 3u8,
         _ => anyhow::bail!("unsupported PDF image color space"),
     };
     if stream.dict.get(b"BitsPerComponent")?.as_i64()? != 8 {
         anyhow::bail!("unsupported PDF image bit depth");
     }
-    let data = stream.decompressed_content_with_limit((width as usize) * (height as usize) * channels)?;
+    let data = stream.decompressed_content_with_limit((width as usize) * (height as usize) * channels as usize)?;
+    write_png_data(width, height, channels, &data, destination)
+}
+
+fn write_png_data(width: u32, height: u32, channels: u8, data: &[u8], destination: &Path) -> anyhow::Result<()> {
     let file = fs::File::create(destination)?;
     let mut encoder = png::Encoder::new(file, width, height);
     encoder.set_color(if channels == 1 {
@@ -95,7 +104,7 @@ fn write_png_stream(stream: &lopdf::Stream, destination: &Path) -> anyhow::Resul
         png::ColorType::Rgb
     });
     encoder.set_depth(png::BitDepth::Eight);
-    encoder.write_header()?.write_image_data(&data)?;
+    encoder.write_header()?.write_image_data(data)?;
     Ok(())
 }
 
@@ -118,6 +127,62 @@ mod tests {
         assert!(
             matches!(document.elements.first(), Some(SemanticElement::Image { reference, .. }) if reference.source.as_deref() == Some("images/imageFile1.png") && reference.format.as_deref() == Some("png"))
         );
+        Ok(())
+    }
+
+    #[test]
+    fn external_images_write_supported_inline_image() -> anyhow::Result<()> {
+        let pdf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/pdf/lorem.pdf");
+        let mut document = Document {
+            file_name: "inline.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 1.0,
+                height: 1.0,
+                chunks: vec![ParserChunk::Image(ImageChunk {
+                    page_index: 0,
+                    bounds: BoundingBox {
+                        left: 0.0,
+                        bottom: 0.0,
+                        right: 1.0,
+                        top: 1.0,
+                    },
+                    object_reference: None,
+                    inline_image: Some(InlineImage {
+                        width: 1,
+                        height: 1,
+                        channels: 3,
+                        data: vec![255, 0, 0],
+                    }),
+                    parser_order: 0,
+                    structure_id: None,
+                    pdfua_tag: None,
+                })],
+            }],
+            elements: vec![SemanticElement::Image {
+                common: ElementCommon {
+                    id: Some(1),
+                    page_index: 0,
+                    bounds: BoundingBox {
+                        left: 0.0,
+                        bottom: 0.0,
+                        right: 1.0,
+                        top: 1.0,
+                    },
+                    pdfua_tag: None,
+                },
+                reference: ImageReference {
+                    source: None,
+                    data: None,
+                    format: None,
+                },
+            }],
+        };
+        let image_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/inline-image-test/images");
+        write_external_images(&pdf_path, &image_dir, &mut document, "png")?;
+        assert!(image_dir.join("imageFile1.png").is_file());
         Ok(())
     }
 }

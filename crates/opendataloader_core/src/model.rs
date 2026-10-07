@@ -41,9 +41,18 @@ pub struct ImageChunk {
     pub page_index: usize,
     pub bounds: BoundingBox,
     pub object_reference: Option<String>,
+    pub inline_image: Option<InlineImage>,
     pub parser_order: usize,
     pub structure_id: Option<u64>,
     pub pdfua_tag: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct InlineImage {
+    pub width: u32,
+    pub height: u32,
+    pub channels: u8,
+    pub data: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

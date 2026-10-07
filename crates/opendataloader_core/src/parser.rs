@@ -253,6 +253,11 @@ fn page_chunks(
                 page_index,
                 bounds: image_bounds(&text_state.ctm),
                 object_reference: None,
+                inline_image: operation
+                    .operands
+                    .first()
+                    .and_then(|object| object.as_stream().ok())
+                    .and_then(inline_image),
                 parser_order,
                 structure_id: text_state.structure_id,
                 pdfua_tag: text_state.pdfua_tag.clone(),
@@ -293,6 +298,7 @@ fn page_chunks(
                         page_index,
                         bounds,
                         object_reference: object_reference.clone(),
+                        inline_image: None,
                         parser_order,
                         structure_id: text_state.structure_id,
                         pdfua_tag: text_state.pdfua_tag.clone(),
@@ -345,6 +351,51 @@ fn page_chunks(
         }
     }
     Ok(chunks)
+}
+
+fn inline_image(stream: &lopdf::Stream) -> Option<InlineImage> {
+    let width = stream
+        .dict
+        .get(b"W")
+        .or_else(|_| stream.dict.get(b"Width"))
+        .ok()?
+        .as_i64()
+        .ok()? as u32;
+    let height = stream
+        .dict
+        .get(b"H")
+        .or_else(|_| stream.dict.get(b"Height"))
+        .ok()?
+        .as_i64()
+        .ok()? as u32;
+    let bits = stream
+        .dict
+        .get(b"BPC")
+        .or_else(|_| stream.dict.get(b"BitsPerComponent"))
+        .ok()?
+        .as_i64()
+        .ok()?;
+    if bits != 8 {
+        return None;
+    }
+    let colorspace = stream
+        .dict
+        .get(b"CS")
+        .or_else(|_| stream.dict.get(b"ColorSpace"))
+        .ok()?
+        .as_name()
+        .ok()?;
+    let channels = match colorspace {
+        b"G" | b"Gray" | b"DeviceGray" => 1u8,
+        b"RGB" | b"DeviceRGB" => 3u8,
+        _ => return None,
+    };
+    (stream.content.len() == width as usize * height as usize * channels as usize).then(|| InlineImage {
+        width,
+        height,
+        channels,
+        data: stream.content.clone(),
+    })
 }
 
 struct TextState {

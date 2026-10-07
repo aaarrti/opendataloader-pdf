@@ -600,8 +600,12 @@ finished modules.
   remains blocked by the separately scoped STD3-F3 inline-image gaps and any
   newly exposed corpus-specific semantic differences.
 
-- [ ] **STD3-F3 — Complete unsupported image extraction paths.** **Depends on:**
+- [x] **STD3-F3 — Complete unsupported image extraction paths.** **Depends on:**
   STD3. **Parallel:** yes, with STD3-F2. Remaining image-count differences
   include inline image operations that are represented as chunks but are not
   written as external image files. Decode supported inline image streams while
-  retaining isolated-write-failure behavior.
+  retaining isolated-write-failure behavior. Added inline image payloads to
+  parser chunks for supported raw 8-bit gray/RGB streams and wrote them through
+  the existing PNG path, preserving per-image failure isolation. Added a
+  focused writer test; filtered inline encodings remain outside the supported
+  `lopdf` parser boundary and the ten-fixture STD3 regression remains active.
