@@ -195,9 +195,22 @@ fn decoded_pdf_text(
     let bytes = object.as_str().ok()?;
     font_name
         .and_then(|name| fonts.get(name))
-        .and_then(|font| font.get_font_encoding(pdf).ok())
+        .and_then(|font| font_encoding(pdf, font))
         .and_then(|encoding| encoding.bytes_to_string(bytes).ok())
         .or_else(|| Some(String::from_utf8_lossy(bytes).into_owned()))
+}
+
+fn font_encoding<'a>(pdf: &'a PdfDocument, font: &'a Dictionary) -> Option<lopdf::Encoding<'a>> {
+    if let Ok(descendants) = font.get_deref(b"DescendantFonts", pdf).and_then(Object::as_array) {
+        if let Some(descendant) = descendants.first().and_then(|object| pdf.dereference(object).ok()) {
+            if let Ok(descendant) = descendant.1.as_dict() {
+                if descendant.has(b"ToUnicode") {
+                    return descendant.get_font_encoding(pdf).ok();
+                }
+            }
+        }
+    }
+    font.get_font_encoding(pdf).ok()
 }
 
 fn page_bounds(pdf: &PdfDocument, page_id: lopdf::ObjectId) -> Result<(f64, f64), String> {

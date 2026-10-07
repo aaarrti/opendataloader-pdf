@@ -251,3 +251,10 @@ a focused parser test. `cargo check --workspace --locked` and strict
 workspace Clippy pass; the active ten-fixture gate still reports JSON and
 Markdown mismatches from remaining image inclusion/order and tagged table or
 semantic reconstruction gaps, so STD3 remains incomplete.
+
+2026-10-08 — Advanced STD3 with descendant-font ToUnicode decoding for Type0/CID
+fonts in `parser.rs`. The focused embedded-font test passes and parser-produced
+control-character text is gone from the regression output. `cargo check
+--workspace --locked` passes; `cargo test --workspace --locked` still reports
+the documented ten-fixture semantic/table/image mismatches, so STD3 remains
+incomplete.

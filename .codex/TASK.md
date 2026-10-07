@@ -589,7 +589,10 @@ finished modules.
   matrices. Focused parser tests pass, but the gate still has mismatches in
   tagged-role/semantic segmentation, table metadata, and exact glyph geometry.
   Remaining mismatches include image inclusion/order and full tagged
-  table/semantic reconstruction.
+  table/semantic reconstruction. The current iteration also fixes Type0/CID
+  fonts whose ToUnicode map is stored on the descendant font dictionary;
+  focused embedded-font tests pass and the regression no longer emits parser-
+  produced control-character text, but the gate remains incomplete.
 
 - [x] **STD3-F1 — Preserve source font names and avoid false headings.**
   **Depends on:** STD3. **Parallel:** yes, with the remaining STD3 fixes.
