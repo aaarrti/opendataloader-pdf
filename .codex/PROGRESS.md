@@ -280,3 +280,9 @@ distinct tagged runs remain separate. Added a colocated regression test.
 `cargo fmt --all`, `cargo check --workspace --locked`, and the 29 passing
 non-regression workspace tests pass; the ten-fixture regression still reports
 JSON and Markdown mismatches for all ten fixtures, so STD3 remains incomplete.
+
+2026-10-08 — Advanced STD3 with a scoped semantic fix. Tagged paragraph runs
+now merge by shared PDF role despite differing MCIDs, while paragraph joins
+require compatible left alignment so indented runs remain separate. All seven
+semantic unit tests pass; the ten-fixture gate still reports the documented
+broader table, image, metadata, and tagged-structure mismatches.

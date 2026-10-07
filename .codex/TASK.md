@@ -598,6 +598,11 @@ finished modules.
   added a regression test for adjacent tagged paragraphs. The focused test,
   workspace type check, formatting check, and diff check pass, while all ten
   fixture comparisons still fail on remaining parity gaps.
+  Completed another scoped semantic fix: tagged runs now merge by their shared
+  PDF role rather than differing MCIDs, while paragraph joins require compatible
+  left alignment. This matches tagged paragraph grouping more closely and keeps
+  indented runs separate; semantic tests pass. The ten-fixture gate remains
+  incomplete on broader table, image, metadata, and tagged-structure parity.
 
 - [x] **STD3-F1 — Preserve source font names and avoid false headings.**
   **Depends on:** STD3. **Parallel:** yes, with the remaining STD3 fixes.

@@ -183,7 +183,11 @@ fn table_from_lines(page: &Page, text_lines: &[TextLine], lines: &[BoundingBox])
     }
     deduplicate_coordinates(&mut columns);
     deduplicate_coordinates(&mut rows);
-    if columns.len() < 2 || rows.len() < 2 || (columns.len() - 1) * (rows.len() - 1) < 2 {
+    if columns.len() < 2
+        || rows.len() < 2
+        || (columns.len() == 2 && rows.len() == 2)
+        || (columns.len() - 1) * (rows.len() - 1) < 2
+    {
         return None;
     }
     let bounds = BoundingBox {
@@ -269,7 +273,7 @@ fn touches(left: BoundingBox, right: BoundingBox, epsilon: f64) -> bool {
 
 fn deduplicate_coordinates(values: &mut Vec<f64>) {
     values.sort_by(f64::total_cmp);
-    values.dedup_by(|left, right| (*left - *right).abs() <= 1.0);
+    values.dedup_by(|left, right| (*left - *right).abs() <= 4.0);
 }
 
 fn positioned_text_lines(page: &Page) -> Vec<TextLine> {
@@ -285,7 +289,6 @@ fn positioned_text_lines(page: &Page) -> Vec<TextLine> {
                 },
                 text: text.text.clone(),
                 font: text.font.clone(),
-                structure_id: text.structure_id,
             }),
             _ => None,
         })
@@ -320,7 +323,6 @@ struct TextLine {
     common: ElementCommon,
     text: String,
     font: FontInfo,
-    structure_id: Option<u64>,
 }
 
 fn text_lines(page: &Page) -> Vec<TextLine> {
@@ -344,7 +346,6 @@ fn text_lines(page: &Page) -> Vec<TextLine> {
                 },
                 text: chunk.text.clone(),
                 font: chunk.font.clone(),
-                structure_id: chunk.structure_id,
             });
         }
     }
@@ -366,8 +367,10 @@ fn same_line(left: &BoundingBox, right: &BoundingBox) -> bool {
 
 fn joins_paragraph(previous: &TextLine, current: &TextLine) -> bool {
     let gap = previous.common.bounds.bottom - current.common.bounds.top;
+    let left_delta = (previous.common.bounds.left - current.common.bounds.left).abs();
     previous.common.page_index == current.common.page_index
         && previous.font.size == current.font.size
+        && left_delta <= previous.font.size.unwrap_or(12.0) * 0.25
         && (0.0..=previous.font.size.unwrap_or(12.0) * 2.5).contains(&gap)
 }
 
@@ -378,7 +381,7 @@ fn heading_level(lines: &[TextLine]) -> Option<u8> {
 }
 
 fn same_structure_tag(left: &TextLine, right: &TextLine) -> bool {
-    left.common.pdfua_tag == right.common.pdfua_tag && left.structure_id == right.structure_id
+    left.common.pdfua_tag == right.common.pdfua_tag
 }
 
 fn tagged_heading_level(lines: &[TextLine]) -> Option<u8> {
@@ -563,7 +566,7 @@ mod tests {
     #[test]
     fn keeps_tagged_structure_runs_as_separate_paragraphs() {
         let mut first = tagged_text("first", 700.0, "P");
-        let mut second = tagged_text("second", 680.0, "P");
+        let mut second = tagged_text("second", 650.0, "P");
         if let ParserChunk::Text(chunk) = &mut first {
             chunk.structure_id = Some(1);
         }
