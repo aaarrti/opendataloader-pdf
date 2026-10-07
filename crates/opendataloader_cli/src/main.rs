@@ -53,7 +53,6 @@ fn run(cli_args: CliArg) -> Result<()> {
             markdown_enabled: cli_args.markdown,
             image_output_enabled: cli_args.image,
             parallel: cli_args.parallel,
-            ..ConversionOptions::default()
         },
     )
 }
