@@ -141,3 +141,8 @@ Rust parser and conversion orchestration. `cargo check --workspace` and strict
 workspace Clippy pass. Core and CLI tests pass; the existing C ABI missing-input
 assertion remains the separate TEST1 failure. Formatting remains blocked by an
 unrelated pre-existing `markdown.rs` rustfmt difference.
+
+2026-10-07 — Completed LINT2. Verified `packages/opendataloader/src/opendataloader/api.py`
+already matches the configured Black formatting, so no source changes were
+needed. `uv run black --check .`, `uv run ruff check .`, `uv run pytest` (1
+passed), and `cargo check --workspace --locked` pass.

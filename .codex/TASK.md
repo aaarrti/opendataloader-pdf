@@ -431,10 +431,12 @@ finished modules.
   `cargo clippy --workspace --all-targets --locked -- -D warnings` passes.
   Implemented the five requested lint fixes in `parser.rs` and `lib.rs`.
 
-- [ ] **LINT2 — Apply Black formatting to the Python API.** **Depends on:**
+- [x] **LINT2 — Apply Black formatting to the Python API.** **Depends on:**
   none. Format `packages/opendataloader/src/opendataloader/api.py` according
   to the repository's Black configuration. **Acceptance:**
   `uv run black --check .` passes, and `uv run ruff check .` continues to pass.
+  Verified that the API file already matches the configured Black format; no
+  source changes were needed.
 
 - [ ] **TEST1 — Include the failing PDF path in C ABI errors.** **Depends on:**
   none. Fix conversion error context so `odl_last_error()` identifies the
