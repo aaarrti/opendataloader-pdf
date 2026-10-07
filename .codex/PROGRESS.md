@@ -165,3 +165,11 @@ manifest, and made JSON/Markdown comparisons continue across all fixtures with
 fixture-specific failure reporting. `cargo check --workspace --locked` and
 strict workspace Clippy pass; the active regression and full workspace tests
 report the expected ten-fixture parity mismatches for STD2.
+
+2026-10-07 — Completed STD2. Ran the active ten-fixture regression: all ten
+PDFs converted, and each reported JSON and Markdown mismatches. Diagnosed the
+shared causes as embedded-font decoding, missing text coordinates causing
+semantic/table geometry drift, and image/table structure differences. Added
+fixture-specific evidence to `data/oracle/manifest.toml` and created the
+scoped STD2-F1/F2/F3 fix tasks; production code and oracle outputs were not
+changed.

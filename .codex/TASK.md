@@ -493,7 +493,7 @@ finished modules.
   and manifest coverage entries; the regression is active and may fail until
   STD2 diagnoses the documented parity gaps.
 
-- [ ] **STD2 — Diagnose ten-fixture mismatches and add fix tasks.**
+- [x] **STD2 — Diagnose ten-fixture mismatches and add fix tasks.**
   **Depends on:** STD1. **Parallel:** no. Run the active ten-fixture
   regression test and inspect every reported JSON and Markdown mismatch.
   Trace each mismatch to its root cause and the Rust module or function
@@ -506,6 +506,48 @@ finished modules.
   invalid expected output; the fix tasks identify their STD2 dependency and
   can be implemented independently where their code paths allow; the full
   mismatch report is retained with the task notes or fixture manifest.
+
+  Diagnosed all twenty reported mismatches. Every fixture has both JSON and
+  Markdown failures. The shared causes are embedded-font text decoding in
+  `crates/opendataloader_core/src/parser.rs`, missing text coordinates in
+  `parser.rs` feeding `cleanup.rs`, `semantics.rs`, and `reading_order.rs`,
+  and image/table structure differences in `parser.rs`, `images.rs`, and
+  `semantics.rs`. Added the evidence and three scoped fix tasks to
+  `data/oracle/manifest.toml`.
+
+- [ ] **STD2-F1 — Decode embedded font text for the STD1 corpus.** **Depends
+  on:** STD2. **Parallel:** yes, with STD2-F2 and STD2-F3. Fix the lopdf text
+  extraction boundary in `crates/opendataloader_core/src/parser.rs` so the
+  embedded CJK and other subset-font encodings used by all ten STD1 PDFs
+  produce the Java-visible Unicode text instead of control characters and
+  mojibake. Keep ASCII/Unicode baseline behavior unchanged. **Acceptance:**
+  the text content in all ten selected JSON fixtures matches the oracle for
+  non-table text, and the corresponding Markdown content no longer contains
+  parser-produced control-character text; parser tests cover at least one
+  embedded CJK fixture and the existing baseline fixtures.
+
+- [ ] **STD2-F2 — Preserve text coordinates and rebuild semantic geometry.**
+  **Depends on:** STD2. **Parallel:** yes, with STD2-F1 and STD2-F3. Extend
+  the parser chunk data from `crates/opendataloader_core/src/parser.rs` with
+  reliable text bounds and line positions, then update
+  `cleanup.rs`, `semantics.rs`, and `reading_order.rs` only as needed to use
+  them. This must stop page-sized fabricated bounds and false table/paragraph
+  grouping while preserving page order and stable IDs. **Acceptance:** the
+  ten STD1 JSON outputs have oracle-compatible text bounds and semantic
+  kinds/order wherever the PDFs expose them; Markdown no longer gains the
+  large fabricated table blocks; focused tests cover a positioned text page
+  and a non-table page.
+
+- [ ] **STD2-F3 — Match image and table extraction structure.** **Depends on:**
+  STD2. **Parallel:** yes, with STD2-F1 and STD2-F2. Compare the Java and Rust
+  image/table artifacts in the ten fixtures and correct the shared extraction
+  paths in `crates/opendataloader_core/src/parser.rs`, `images.rs`, and
+  `semantics.rs`. Preserve external image naming and valid image bytes, omit
+  drawing-only lines, and do not fabricate table cells from unavailable
+  geometry. **Acceptance:** image counts/references and table row/cell
+  structure match the ten JSON oracles where source artifacts support them;
+  Markdown image/table bytes match those same cases; focused tests cover one
+  image-bearing PDF and one bordered table.
 
 - [ ] **STD3 — Fix the ten-fixture regressions until they pass.**
   **Depends on:** STD2 and all fix tasks created by STD2. **Parallel:** follow

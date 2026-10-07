@@ -115,6 +115,67 @@ blockers = [
     "image extraction and semantic element grouping do not yet match the Java oracle",
 ]
 
+[STD2]
+status = "complete"
+test_command = "cargo test -p opendataloader_core --locked stg_regression_matches_selected_oracles -- --nocapture"
+result = "All ten conversions completed; each fixture reported one JSON mismatch and one exact Markdown-byte mismatch. No conversion or oracle read failures occurred."
+root_causes = [
+    "Embedded subset-font encodings are decoded as control characters or mojibake by parser.rs, so source text differs before semantic reconstruction.",
+    "parser.rs assigns page bounds to extracted text instead of source coordinates, causing cleanup.rs, semantics.rs, and reading_order.rs to lose geometry and fabricate grouping/table structure.",
+    "Image and table chunk/semantic structure differs in parser.rs, images.rs, and semantics.rs; the current output has broad false tables and does not reproduce Java image/table nodes.",
+]
+fix_tasks = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj"
+result = "JSON mismatch; Markdown mismatch; actual 34 images, 3 tables, 2920 table cells, 21 paragraphs vs oracle 35 images, 3 tables, 4 table cells, 141 paragraphs, 39 headings, 18 text blocks, and 8 lists."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "15TuRJyctl-q_fH8h2x1BDSwcOkVp2X-F"
+result = "JSON mismatch; Markdown mismatch; actual 24 images and 25 paragraphs vs oracle 25 images, 4 tables, 168 paragraphs, 19 headings, 10 text blocks, and 6 lists."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "1608T-nySkkiAKWPb82j8Ky3goi-JdAAO"
+result = "JSON mismatch; Markdown mismatch; actual 23 paragraphs vs oracle 20 images, 5 tables, 118 paragraphs, 22 headings, and 14 lists."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "16CqynJjLzEXxBPs1NFNOPDmI29cFTf7C"
+result = "JSON mismatch; Markdown mismatch; actual 3 images and 22 paragraphs vs oracle 3 images, 18 tables, 107 table cells, 180 paragraphs, 29 headings, and 8 text blocks."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "16KV3yHsv-JRiTNOTn6hk8rQVj29Zy0CJ"
+result = "JSON mismatch; Markdown mismatch; actual 47 images and 32 paragraphs vs oracle 47 images, 6 tables, 56 table cells, 155 paragraphs, 45 headings, and 15 lists."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "16NAFVFZn-cAE57ABjRhDKjJomKK-_FtG"
+result = "JSON mismatch; Markdown mismatch; actual 9 paragraphs vs oracle 10 images, 5 tables, 76 table cells, 85 paragraphs, 9 headings, and 2 text blocks."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "16Qinseqr080DXqQh68bMmZ__NaQgwDUw"
+result = "JSON mismatch; Markdown mismatch; actual 1 paragraph vs oracle 1 heading, 65 paragraphs, 1 table, 66 table cells, and 22 table rows."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "17TglQXxIlhtYelkdpZYUMcXPYrlVD36L"
+result = "JSON mismatch; Markdown mismatch; actual 13 images and 12 paragraphs vs oracle 13 images, 4 tables, 143 table cells, 164 paragraphs, and 8 headings."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "17p8zVO_3ZIFuJssbCb1IqH4V-reAogDB"
+result = "JSON mismatch; Markdown mismatch; actual 44 images, 1 table, and 675 table cells vs oracle 44 images, 7 tables, 105 table cells, 205 paragraphs, 29 headings, and 7 text blocks."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
+[[STD2_fixture]]
+stem = "17pgHc4kp7c7x1FY_Ir4-Rcwfn-Z4kCse"
+result = "JSON mismatch; Markdown mismatch; actual 17 paragraphs vs oracle 7 images, 12 tables, 141 table cells, 178 paragraphs, 28 headings, 31 lists, and 9 text blocks."
+causes = ["STD2-F1", "STD2-F2", "STD2-F3"]
+
 [[STD1_fixture]]
 stem = "10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj"
 behaviors = ["multipage", "headings", "lists", "tables", "images", "captions"]
