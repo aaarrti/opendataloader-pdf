@@ -4,3 +4,9 @@ members = [
 ]
 
 resolver = "3"
+
+
+[profile.release]
+lto = true
+incremental = true
+opt-level = 3

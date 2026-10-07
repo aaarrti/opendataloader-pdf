@@ -64,12 +64,10 @@ fn render_list_item(element: &SemanticElement, indent: usize, marker: &str) -> O
         text.as_deref().map(markdown_text).unwrap_or_default()
     );
     for child in children {
-        if let SemanticElement::List { .. } = child {
-            if let Some(nested) = render(child, indent + 1) {
+        if let SemanticElement::List { .. } = child && let Some(nested) = render(child, indent + 1) {
                 output.push('\n');
                 output.push_str(&nested);
             }
-        }
     }
     Some(output)
 }

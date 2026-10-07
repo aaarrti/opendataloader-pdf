@@ -419,3 +419,47 @@ finished modules.
   documented `OPENDATALOADER_PDF_LIBRARY` override, JSON-default and
   JSON/Markdown selection, path validation, native status/error mapping, and
   installed-package smoke coverage.
+
+## Quality follow-up tasks
+
+- [ ] **LINT1 — Resolve Rust Clippy findings.** **Depends on:** none.
+  Update the lint findings in `crates/opendataloader_core/src/parser.rs` and
+  `crates/opendataloader_core/src/lib.rs`: replace the manual character
+  comparison, collapse the nested conditional, remove the needless borrow,
+  use slice iteration, and avoid cloning a path just to create a one-item
+  slice. Preserve conversion behavior. **Acceptance:**
+  `cargo clippy --workspace --all-targets --locked -- -D warnings` passes.
+
+- [ ] **LINT2 — Apply Black formatting to the Python API.** **Depends on:**
+  none. Format `packages/opendataloader/src/opendataloader/api.py` according
+  to the repository's Black configuration. **Acceptance:**
+  `uv run black --check .` passes, and `uv run ruff check .` continues to pass.
+
+- [ ] **TEST1 — Include the failing PDF path in C ABI errors.** **Depends on:**
+  none. Fix conversion error context so `odl_last_error()` identifies the
+  missing input path when `odl_convert` cannot open a PDF. Preserve the
+  conversion status code and useful output-directory error details.
+  **Acceptance:**
+  `cargo test -p opendataloder_clib reports_missing_input_and_output_failures`
+  passes; the last-error text includes the relevant input path for missing
+  inputs; and `just test` proceeds to the Python smoke test after Rust tests
+  pass.
+
+- [ ] **AGENT1 — Expose PDF parsing as an Agents SDK function tool.**
+  **Depends on:** PY1. **Parallel:** no. Add a sibling package under
+  `packages/`, following the packaging and local-conversion pattern in
+  `packages/opendataloader-mcp`. Use the OpenAI Agents SDK function-tool API
+  to expose a `parse_pdf` tool that accepts a local PDF path and a supported
+  output format, calls the existing `opendataloader` Python package, and
+  returns the generated JSON or Markdown content as the tool result. Keep
+  extraction in the native library through the existing Python wrapper; do not
+  duplicate parsing or conversion logic. Export a usable tool for registration
+  with an Agents SDK `Agent`; do not add an agent runner, API-key requirement,
+  model call, remote processing, or MCP server. Add package metadata,
+  dependencies, entry points if needed, Google-style Python docstrings, and
+  focused tests for tool metadata, successful JSON and Markdown results,
+  unsupported formats, and invalid or missing PDF paths. **Acceptance:** the
+  package builds and installs in the workspace; an Agents SDK agent can
+  register the exported `parse_pdf` function tool; local tool tests pass
+  without network access or a model call; results match the corresponding
+  existing `opendataloader` conversion outputs.

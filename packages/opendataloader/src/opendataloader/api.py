@@ -21,7 +21,6 @@ _LIBRARY: ctypes.CDLL | None = None
 _LIBRARY_LOCK = RLock()
 
 
-
 type _OutputFormat = Literal["json", "markdown"]
 
 
@@ -121,10 +120,11 @@ def convert(
         raise ValueError("format must contain only 'json' and 'markdown'")
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
-    mode = (_OPTION_JSON if "json" in formats else 0) | (
-        _OPTION_MARKDOWN if "markdown" in formats else 0
-    ) | (_OPTION_IMAGES if image_output_enabled else 0) | (
-        _OPTION_PARALLEL if parallel else 0
+    mode = (
+        (_OPTION_JSON if "json" in formats else 0)
+        | (_OPTION_MARKDOWN if "markdown" in formats else 0)
+        | (_OPTION_IMAGES if image_output_enabled else 0)
+        | (_OPTION_PARALLEL if parallel else 0)
     )
     encoded_paths = [str(path).encode() for path in paths]
     native_paths = (_CHAR_POINTER * len(encoded_paths))(
