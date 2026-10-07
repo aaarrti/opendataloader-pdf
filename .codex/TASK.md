@@ -578,3 +578,24 @@ finished modules.
   evidence-backed invalid-oracle findings; the committed expected files remain
   unchanged unless a task proves an oracle file itself is invalid and records
   the evidence.
+
+- [x] **STD3-F1 — Preserve source font names and avoid false headings.**
+  **Depends on:** STD3. **Parallel:** yes, with the remaining STD3 fixes.
+  Resolve PDF resource font names through each font dictionary's `BaseFont`
+  instead of exposing aliases such as `F1`, and do not classify long large-font
+  body blocks as headings. Added a focused semantic regression test. Core unit
+  tests pass; the active ten-fixture regression still exposes separate
+  structural-tag, text-segmentation, and inline-image gaps.
+
+- [ ] **STD3-F2 — Use tagged PDF structure and preserve semantic text runs.**
+  **Depends on:** STD3. **Parallel:** yes, with STD3-F3. Remaining corpus
+  mismatches show missing captions, text blocks, list items, and heading levels,
+  plus paragraph grouping that differs from the Java oracle. Map marked-content
+  and structure-tree tags to parser chunks where present, and preserve line and
+  block boundaries needed by semantic reconstruction.
+
+- [ ] **STD3-F3 — Complete unsupported image extraction paths.** **Depends on:**
+  STD3. **Parallel:** yes, with STD3-F2. Remaining image-count differences
+  include inline image operations that are represented as chunks but are not
+  written as external image files. Decode supported inline image streams while
+  retaining isolated-write-failure behavior.

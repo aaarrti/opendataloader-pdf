@@ -197,3 +197,11 @@ tables. Table row/cell structures now match the table-heavy committed
 fixtures; unsupported image artifacts and remaining semantic-content parity
 gaps remain for STD3. Core tests pass; the active ten-fixture regression still
 reports the documented JSON and Markdown mismatches.
+
+2026-10-07 — Advanced STD3 with STD3-F1. Parser font metadata now resolves
+resource aliases through `BaseFont`, and semantic reconstruction no longer
+classifies long large-font body blocks as headings; added a focused regression
+test. Core unit tests and type checks pass, but the active ten-fixture gate
+still fails. Added STD3-F2 for tagged-PDF semantic/text segmentation and
+STD3-F3 for remaining inline-image extraction gaps; expected fixtures remain
+unchanged.

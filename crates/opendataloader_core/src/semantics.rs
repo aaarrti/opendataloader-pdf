@@ -347,7 +347,8 @@ fn joins_paragraph(previous: &TextLine, current: &TextLine) -> bool {
 
 fn heading_level(lines: &[TextLine]) -> Option<u8> {
     let size = lines.first()?.font.size?;
-    (size >= 14.0).then(|| ((24.0 - size) / 2.0).round().clamp(1.0, 6.0) as u8)
+    let text_len = lines.iter().map(|line| line.text.chars().count()).sum::<usize>();
+    (size >= 14.0 && text_len <= 80).then(|| ((24.0 - size) / 2.0).round().clamp(1.0, 6.0) as u8)
 }
 
 fn list_marker(text: &str) -> Option<(ListStyle, String)> {
@@ -446,6 +447,28 @@ mod tests {
         assert!(
             matches!(document.elements[2], SemanticElement::List { style: ListStyle::Unordered, ref items, .. } if items.len() == 2)
         );
+    }
+
+    #[test]
+    fn keeps_long_large_font_body_text_as_a_paragraph() {
+        let mut document = Document {
+            file_name: "body.pdf".into(),
+            page_count: 1,
+            metadata: DocumentMetadata::default(),
+            pages: vec![Page {
+                index: 0,
+                width: 300.0,
+                height: 800.0,
+                chunks: vec![text(
+                    "A large body paragraph that is deliberately long enough to exceed the heading threshold and remain ordinary content.",
+                    700.0,
+                    28.0,
+                )],
+            }],
+            elements: Vec::new(),
+        };
+        reconstruct_semantics(&mut document);
+        assert!(matches!(document.elements[0], SemanticElement::Paragraph { .. }));
     }
 
     #[test]

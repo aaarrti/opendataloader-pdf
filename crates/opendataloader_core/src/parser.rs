@@ -179,6 +179,13 @@ fn page_chunks(
                     .first()
                     .and_then(|object| object.as_name().ok())
                     .map(Vec::from);
+                text_state.display_font_name = text_state.font_name.as_ref().and_then(|name| {
+                    fonts
+                        .get(name)
+                        .and_then(|font| font.get_deref(b"BaseFont", pdf).ok())
+                        .and_then(|object| object.as_name().ok())
+                        .map(|name| String::from_utf8_lossy(name).into_owned())
+                });
                 text_state.font_size = operation.operands.get(1).and_then(object_number).unwrap_or(12.0);
             }
             "Tm" => set_text_matrix(&mut text_state, &operation.operands),
@@ -325,6 +332,7 @@ struct TextState {
     line_y: f64,
     leading: f64,
     font_name: Option<Vec<u8>>,
+    display_font_name: Option<String>,
     font_size: f64,
     ctm: [f64; 6],
 }
@@ -371,6 +379,7 @@ impl Default for TextState {
             line_y: 0.0,
             leading: 0.0,
             font_name: None,
+            display_font_name: None,
             font_size: 0.0,
             ctm: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
         }
@@ -477,10 +486,12 @@ fn push_text_chunk(
         glyph_order: Vec::new(),
         character_spacing: None,
         font: FontInfo {
-            name: state
-                .font_name
-                .as_ref()
-                .map(|name| String::from_utf8_lossy(name).into_owned()),
+            name: state.display_font_name.clone().or_else(|| {
+                state
+                    .font_name
+                    .as_ref()
+                    .map(|name| String::from_utf8_lossy(name).into_owned())
+            }),
             size: (state.font_size > 0.0).then_some(state.font_size),
             ..Default::default()
         },
