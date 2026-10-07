@@ -583,8 +583,13 @@ finished modules.
   reports JSON and Markdown mismatches for all ten cases, so this task remains
   incomplete. Added parser-side PDF structure-tree ParentTree resolution so
   MCIDs can carry roles such as Figure instead of the broad marked-content P
-  scope; a focused parser test covers the mapping. Remaining mismatches are
-  image inclusion/order and full tagged table/semantic reconstruction.
+  scope; a focused parser test covers the mapping. Updated the parser to
+  dereference page StructParents values, traverse ParentTree Kids nodes,
+  normalize subset font names, and scale text geometry/font sizes from text
+  matrices. Focused parser tests pass, but the gate still has mismatches in
+  tagged-role/semantic segmentation, table metadata, and exact glyph geometry.
+  Remaining mismatches include image inclusion/order and full tagged
+  table/semantic reconstruction.
 
 - [x] **STD3-F1 — Preserve source font names and avoid false headings.**
   **Depends on:** STD3. **Parallel:** yes, with the remaining STD3 fixes.

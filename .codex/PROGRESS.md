@@ -230,6 +230,13 @@ The active ten-fixture STD3 regression still fails on broader structural-tag
 mapping and image-order parity; expected fixtures and comparisons remain
 unchanged.
 
+2026-10-08 — Advanced STD3 with a scoped parser fix. Page StructParents values
+ are now dereferenced, ParentTree Kids number-tree nodes are traversed, subset
+ font prefixes are removed from resolved names, and text-matrix scale is used
+ for effective font sizes, bounds, and advances. Focused parser tests pass;
+ the active ten-fixture regression still reports tagged semantic/table,
+ image-order, and exact geometry mismatches.
+
 2026-10-07 — Advanced STD3 with one scoped semantic fix. Border-table
 reconstruction now ignores thin lines spanning a page edge, preventing page
 frames from becoming fabricated tables; added a colocated regression test.

@@ -47,7 +47,7 @@ pub(crate) fn parse_document(path: &Path) -> Result<Document, ConversionError> {
         let parent_key = pdf
             .get_dictionary(page_id)
             .ok()
-            .and_then(|page| page.get(b"StructParents").ok())
+            .and_then(|page| page.get_deref(b"StructParents", &pdf).ok())
             .and_then(|object| object.as_i64().ok())
             .unwrap_or(-1);
         let chunks = page_chunks(
@@ -97,25 +97,37 @@ fn structure_roles(pdf: &PdfDocument) -> BTreeMap<(i64, u64), String> {
     let Ok(parent_tree) = root.get_deref(b"ParentTree", pdf).and_then(Object::as_dict) else {
         return BTreeMap::new();
     };
-    let Ok(nums) = parent_tree.get_deref(b"Nums", pdf).and_then(Object::as_array) else {
-        return BTreeMap::new();
-    };
     let mut roles = BTreeMap::new();
-    for pair in nums.chunks_exact(2) {
-        let Ok(parent_key) = pair[0].as_i64() else { continue };
-        let Ok((_, entries_object)) = pdf.dereference(&pair[1]) else { continue };
-        let Ok(entries) = entries_object.as_array() else { continue };
-        for (mcid, entry) in entries.iter().enumerate() {
-            let Ok(structure) = pdf.dereference(entry).and_then(|(_, object)| object.as_dict()) else {
+    collect_structure_roles(pdf, &Object::Dictionary(parent_tree.clone()), &mut roles);
+    roles
+}
+
+fn collect_structure_roles(pdf: &PdfDocument, object: &Object, roles: &mut BTreeMap<(i64, u64), String>) {
+    let Ok(dictionary) = pdf.dereference(object).and_then(|(_, object)| object.as_dict()) else {
+        return;
+    };
+    if let Ok(nums) = dictionary.get_deref(b"Nums", pdf).and_then(Object::as_array) {
+        for pair in nums.chunks_exact(2) {
+            let Ok(parent_key) = pair[0].as_i64() else { continue };
+            let Ok(entries) = pdf.dereference(&pair[1]).and_then(|(_, object)| object.as_array()) else {
                 continue;
             };
-            let Ok(role) = structure.get_deref(b"S", pdf).and_then(Object::as_name) else {
-                continue;
-            };
-            roles.insert((parent_key, mcid as u64), String::from_utf8_lossy(role).into_owned());
+            for (mcid, entry) in entries.iter().enumerate() {
+                let Ok(structure) = pdf.dereference(entry).and_then(|(_, object)| object.as_dict()) else {
+                    continue;
+                };
+                let Ok(role) = structure.get_deref(b"S", pdf).and_then(Object::as_name) else {
+                    continue;
+                };
+                roles.insert((parent_key, mcid as u64), String::from_utf8_lossy(role).into_owned());
+            }
         }
     }
-    roles
+    if let Ok(kids) = dictionary.get_deref(b"Kids", pdf).and_then(Object::as_array) {
+        for kid in kids {
+            collect_structure_roles(pdf, kid, roles);
+        }
+    }
 }
 
 fn read_metadata(pdf: &PdfDocument) -> DocumentMetadata {
@@ -164,6 +176,14 @@ fn pdf_text(object: &Object) -> Option<String> {
         .as_str()
         .ok()
         .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
+}
+
+fn normalize_font_name(name: &[u8]) -> String {
+    let name = String::from_utf8_lossy(name);
+    match name.split_once('+') {
+        Some((_, name)) => name.to_owned(),
+        None => name.into_owned(),
+    }
 }
 
 fn decoded_pdf_text(
@@ -260,7 +280,7 @@ fn page_chunks(
                         .get(name)
                         .and_then(|font| font.get_deref(b"BaseFont", pdf).ok())
                         .and_then(|object| object.as_name().ok())
-                        .map(|name| String::from_utf8_lossy(name).into_owned())
+                        .map(|name| normalize_font_name(name))
                 });
                 text_state.font_size = operation.operands.get(1).and_then(object_number).unwrap_or(12.0);
             }
@@ -325,7 +345,7 @@ fn page_chunks(
                 for item in items {
                     if let Some(value) = decoded_pdf_text(pdf, &fonts, text_state.font_name.as_ref(), item) {
                         text.push_str(&value);
-                        text_state.x += text_width(&value, text_state.font_size);
+                        text_state.x += text_width(&value, text_state.effective_font_size());
                     } else if let Some(adjustment) = object_number(item) {
                         text_state.x -= adjustment * text_state.font_size / 1000.0;
                     }
@@ -461,6 +481,7 @@ struct TextState {
     font_name: Option<Vec<u8>>,
     display_font_name: Option<String>,
     font_size: f64,
+    text_scale: f64,
     ctm: [f64; 6],
     structure_id: Option<u64>,
     pdfua_tag: Option<String>,
@@ -476,7 +497,7 @@ impl TextState {
     }
 
     fn bounds(&self, start: (f64, f64), end_x: f64) -> BoundingBox {
-        let size = if self.font_size > 0.0 { self.font_size } else { 12.0 };
+        let size = self.effective_font_size();
         let points = [
             self.transform(start.0, start.1),
             self.transform(end_x, start.1),
@@ -489,6 +510,11 @@ impl TextState {
             right: points.iter().map(|point| point.0).fold(f64::NEG_INFINITY, f64::max),
             top: points.iter().map(|point| point.1).fold(f64::NEG_INFINITY, f64::max),
         }
+    }
+
+    fn effective_font_size(&self) -> f64 {
+        let size = if self.font_size > 0.0 { self.font_size } else { 12.0 };
+        size * self.text_scale
     }
 
     fn transform(&self, x: f64, y: f64) -> (f64, f64) {
@@ -510,6 +536,7 @@ impl Default for TextState {
             font_name: None,
             display_font_name: None,
             font_size: 0.0,
+            text_scale: 1.0,
             ctm: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
             structure_id: None,
             pdfua_tag: None,
@@ -546,6 +573,9 @@ fn object_number(object: &Object) -> Option<f64> {
 
 fn set_text_matrix(state: &mut TextState, operands: &[Object]) {
     if operands.len() >= 6 {
+        let a = object_number(&operands[0]).unwrap_or(1.0);
+        let b = object_number(&operands[1]).unwrap_or(0.0);
+        state.text_scale = a.hypot(b).max(1.0);
         state.line_x = object_number(&operands[4]).unwrap_or(0.0);
         state.line_y = object_number(&operands[5]).unwrap_or(0.0);
         state.x = state.line_x;
@@ -591,7 +621,7 @@ fn show_text(
         return;
     }
     let start = (state.x, state.y);
-    state.x += text_width(&text, state.font_size);
+    state.x += text_width(&text, state.effective_font_size());
     push_text_chunk(
         chunks,
         page_index,
@@ -623,7 +653,7 @@ fn push_text_chunk(
                     .as_ref()
                     .map(|name| String::from_utf8_lossy(name).into_owned())
             }),
-            size: (state.font_size > 0.0).then_some(state.font_size),
+            size: (state.font_size > 0.0).then_some(state.effective_font_size()),
             ..Default::default()
         },
         parser_order,
@@ -830,10 +860,12 @@ mod tests {
         assert!(text.bounds.right < document.pages[0].width);
         assert!(text.bounds.top < document.pages[0].height);
         assert!(text.font.size.is_some());
-        assert!(document
-            .elements
-            .iter()
-            .all(|element| !matches!(element, SemanticElement::Table { .. })));
+        assert!(
+            document
+                .elements
+                .iter()
+                .all(|element| !matches!(element, SemanticElement::Table { .. }))
+        );
         Ok(())
     }
 
@@ -893,8 +925,8 @@ mod tests {
 
     #[test]
     fn parser_resolves_structure_tree_roles_for_images() -> anyhow::Result<()> {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../data/stg/10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj.pdf");
+        let path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/stg/10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj.pdf");
         let pdf = PdfDocument::load(&path)?;
         assert!(structure_roles(&pdf).values().any(|role| role == "Figure"));
         Ok(())
