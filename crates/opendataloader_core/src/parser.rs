@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use lopdf::{Document as PdfDocument, Object, content::Operation};
+use lopdf::{Dictionary, Document as PdfDocument, Object, content::Operation};
 
 use super::model::*;
 
@@ -120,6 +120,20 @@ fn pdf_text(object: &Object) -> Option<String> {
         .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
 }
 
+fn decoded_pdf_text(
+    pdf: &PdfDocument,
+    fonts: &std::collections::BTreeMap<Vec<u8>, &Dictionary>,
+    font_name: Option<&Vec<u8>>,
+    object: &Object,
+) -> Option<String> {
+    let bytes = object.as_str().ok()?;
+    font_name
+        .and_then(|name| fonts.get(name))
+        .and_then(|font| font.get_font_encoding(pdf).ok())
+        .and_then(|encoding| encoding.bytes_to_string(bytes).ok())
+        .or_else(|| Some(String::from_utf8_lossy(bytes).into_owned()))
+}
+
 fn page_bounds(pdf: &PdfDocument, page_id: lopdf::ObjectId) -> Result<(f64, f64), String> {
     let page = pdf.get_dictionary(page_id).map_err(|error| error.to_string())?;
     let box_object = page.get_deref(b"MediaBox", pdf).map_err(|error| error.to_string())?;
@@ -144,11 +158,23 @@ fn page_chunks(
     let content = pdf
         .get_and_decode_page_content(page_id)
         .map_err(|error| error.to_string())?;
+    let fonts = pdf.get_page_fonts(page_id).map_err(|error| error.to_string())?;
+    let mut current_font = None;
     let mut chunks = Vec::new();
     for (parser_order, operation) in content.operations.iter().enumerate() {
         match operation.operator.as_str() {
+            "Tf" => {
+                current_font = operation
+                    .operands
+                    .first()
+                    .and_then(|object| object.as_name().ok())
+                    .map(Vec::from);
+            }
             "Tj" | "'" | "\"" => {
-                if let Some(text) = operation.operands.last().and_then(pdf_text)
+                if let Some(text) = operation
+                    .operands
+                    .last()
+                    .and_then(|object| decoded_pdf_text(pdf, &fonts, current_font.as_ref(), object))
                     && !text.is_empty()
                 {
                     chunks.push(ParserChunk::Text(TextChunk {
@@ -169,7 +195,12 @@ fn page_chunks(
                     .operands
                     .first()
                     .and_then(|object| object.as_array().ok())
-                    .map(|items| items.iter().filter_map(pdf_text).collect::<String>());
+                    .map(|items| {
+                        items
+                            .iter()
+                            .filter_map(|object| decoded_pdf_text(pdf, &fonts, current_font.as_ref(), object))
+                            .collect::<String>()
+                    });
                 if let Some(text) = text.filter(|text| !text.is_empty()) {
                     chunks.push(ParserChunk::Text(TextChunk {
                         page_index,
@@ -335,6 +366,25 @@ mod tests {
                 .flat_map(|page| page.chunks.iter())
                 .any(|chunk| matches!(chunk, ParserChunk::Text(_)))
         );
+        Ok(())
+    }
+
+    #[test]
+    fn parser_decodes_embedded_font_text() -> anyhow::Result<()> {
+        let path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/stg/10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj.pdf");
+        let document = crate::parse_pdf(&path).map_err(|error| anyhow::anyhow!(error))?;
+        let text = document
+            .pages
+            .iter()
+            .flat_map(|page| page.chunks.iter())
+            .filter_map(|chunk| match chunk {
+                ParserChunk::Text(text) => Some(text.text.as_str()),
+                _ => None,
+            })
+            .collect::<String>();
+        assert!(text.contains('感'));
+        assert!(!text.chars().any(char::is_control));
         Ok(())
     }
 }

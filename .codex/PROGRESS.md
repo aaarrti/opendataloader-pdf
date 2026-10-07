@@ -173,3 +173,11 @@ semantic/table geometry drift, and image/table structure differences. Added
 fixture-specific evidence to `data/oracle/manifest.toml` and created the
 scoped STD2-F1/F2/F3 fix tasks; production code and oracle outputs were not
 changed.
+
+2026-10-07 — Completed STD2-F1. Updated `parser.rs` to decode page text with
+the active PDF font's ToUnicode mapping, retaining raw UTF-8 fallback and
+operation order. Added an embedded Japanese-font parser test; all ten STD1
+generated JSON text contents are free of parser-produced control characters.
+The active ten-fixture regression still reports the documented geometry and
+image/table mismatches for STD2-F2/F3. `cargo test -p opendataloader_core
+--locked parser_` passes.

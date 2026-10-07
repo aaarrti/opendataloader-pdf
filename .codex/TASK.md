@@ -515,7 +515,7 @@ finished modules.
   `semantics.rs`. Added the evidence and three scoped fix tasks to
   `data/oracle/manifest.toml`.
 
-- [ ] **STD2-F1 — Decode embedded font text for the STD1 corpus.** **Depends
+- [x] **STD2-F1 — Decode embedded font text for the STD1 corpus.** **Depends
   on:** STD2. **Parallel:** yes, with STD2-F2 and STD2-F3. Fix the lopdf text
   extraction boundary in `crates/opendataloader_core/src/parser.rs` so the
   embedded CJK and other subset-font encodings used by all ten STD1 PDFs
@@ -525,6 +525,12 @@ finished modules.
   non-table text, and the corresponding Markdown content no longer contains
   parser-produced control-character text; parser tests cover at least one
   embedded CJK fixture and the existing baseline fixtures.
+
+  Implemented font-aware text decoding through each page font's ToUnicode
+  mapping in `parser.rs`, preserving raw UTF-8 fallback and existing operation
+  order. Added an embedded Japanese-font parser test; all ten STD1 outputs now
+  contain no parser-produced control characters. Geometry and image/table
+  mismatches remain for STD2-F2 and STD2-F3.
 
 - [ ] **STD2-F2 — Preserve text coordinates and rebuild semantic geometry.**
   **Depends on:** STD2. **Parallel:** yes, with STD2-F1 and STD2-F3. Extend
