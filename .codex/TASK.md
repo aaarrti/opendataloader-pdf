@@ -469,22 +469,55 @@ finished modules.
   without network access or a model call; results match the corresponding
   existing `opendataloader` conversion outputs.
 
-- [x] **STD1 — Add regression coverage for representative `data/stg` PDFs.**
-  **Depends on:** O1, V1. **Parallel:** no. Inspect the PDF and expected JSON
-  and Markdown files in `data/stg` when the DVC corpus is available. Select a
-  representative subset that exercises distinct page and content structures,
-  then add end-to-end Rust tests that convert each PDF and compare it with its
-  paired expected outputs. Record the selected fixture paths and covered
-  behaviors in the corpus manifest. Treat the committed expected files as the
-  oracle: investigate differences and fix the Rust implementation rather than
-  weakening comparisons or regenerating expected outputs from Rust. Keep the
-  fixture tests with the conversion code they exercise. **Acceptance:** tests
-  cover several representative `data/stg` PDFs and compare JSON structure and
-  exact Markdown bytes; every mismatch in the selected cases is resolved in
-  the Rust implementation or recorded with evidence if the expected output is
-  invalid; the tests pass with the DVC corpus present and require no Java or
-  network access. Added the exact JSON-structure and Markdown-byte comparison
-  harness for text/list, table, and image/table fixtures. The test is currently
-  ignored because the committed Java oracles expose documented Rust parser
-  parity gaps; selected paths and evidence are recorded in
-  `data/oracle/manifest.toml`.
+- [x] **STD1 — Add active regression cases for ten `data/stg` PDFs.**
+  **Depends on:** O1, V1. **Parallel:** no. Extend
+  `stg_regression_matches_selected_oracles` in
+  `crates/opendataloader_core/src/lib.rs` from its current three fixtures to
+  exactly ten complete same-stem triplets from `data/stg`: one PDF, its
+  expected JSON, and its expected Markdown. Choose ten PDFs with varied page
+  and content structures, record their stems and covered behaviors in
+  `data/oracle/manifest.toml`, and remove the test's ignore attribute. Run the
+  Rust conversion for every selected PDF and compare JSON values and exact
+  Markdown bytes with the paired files. Collect per-fixture failures so one
+  mismatch does not stop the other nine checks. Do not change production
+  conversion code or expected files in this task. **Acceptance:** exactly ten
+  complete fixture triplets are checked; all ten checks run on each test
+  invocation and report fixture-specific JSON or Markdown mismatches; the test
+  is active in normal `cargo test -p opendataloader_core`; every selected
+  stem and its test coverage are recorded in the manifest. The test may fail
+  on current conversion mismatches; diagnose those in STD2. The earlier
+  three-fixture comparison harness already exists but is ignored because of
+  known parity gaps.
+
+  Implemented with ten complete triplets, fixture-specific failure collection,
+  and manifest coverage entries; the regression is active and may fail until
+  STD2 diagnoses the documented parity gaps.
+
+- [ ] **STD2 — Diagnose ten-fixture mismatches and add fix tasks.**
+  **Depends on:** STD1. **Parallel:** no. Run the active ten-fixture
+  regression test and inspect every reported JSON and Markdown mismatch.
+  Trace each mismatch to its root cause and the Rust module or function
+  responsible. Add one or more narrowly scoped, unchecked fix tasks to this
+  plan, with fixture stems, expected behavior, implementation location, and
+  task-specific acceptance criteria. Group findings only when they share a
+  root cause. Do not change production code or weaken/regenerate expected
+  outputs during triage. **Acceptance:** every mismatch from all ten fixtures
+  is either mapped to a concrete fix task or shown with evidence to be an
+  invalid expected output; the fix tasks identify their STD2 dependency and
+  can be implemented independently where their code paths allow; the full
+  mismatch report is retained with the task notes or fixture manifest.
+
+- [ ] **STD3 — Fix the ten-fixture regressions until they pass.**
+  **Depends on:** STD2 and all fix tasks created by STD2. **Parallel:** follow
+  the dependencies of those fix tasks. Implement the diagnosed Rust fixes
+  without modifying valid expected outputs or weakening comparisons. After
+  completing the queued fixes, rerun all ten regression cases. If new
+  mismatches remain, add narrowly scoped tasks to this plan for each newly
+  diagnosed root cause, then implement those tasks and rerun the full suite.
+  Repeat this diagnose, task, fix, and rerun cycle until all ten fixtures
+  match. **Acceptance:** all ten PDFs pass JSON-value and exact Markdown-byte
+  comparisons in normal core tests; no mismatch is hidden by an ignore
+  attribute or relaxed assertion; all added fix tasks are complete or have
+  evidence-backed invalid-oracle findings; the committed expected files remain
+  unchanged unless a task proves an oracle file itself is invalid and records
+  the evidence.

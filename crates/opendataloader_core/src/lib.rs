@@ -215,18 +215,27 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "STD1 is blocked by documented parser parity gaps in data/stg"]
     fn stg_regression_matches_selected_oracles() -> anyhow::Result<()> {
         let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let output_dir = manifest_dir.join(format!("../../target/std1-{}", std::process::id()));
         fs::create_dir_all(&output_dir)?;
+        let read_json =
+            |path: PathBuf| -> anyhow::Result<serde_json::Value> { Ok(serde_json::from_slice(&fs::read(path)?)?) };
+        let mut failures = Vec::new();
         for stem in [
-            "1hSAawHGuQXnBe5ZnhxZtHEoRDj4ngRBG",
-            "17f1tgTOxzVUhGYE3hshKnGKzi5Y7nt7x",
-            "1d3itesSOkNtIejyfwiswaypOiKcFcqY7",
+            "10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj",
+            "15TuRJyctl-q_fH8h2x1BDSwcOkVp2X-F",
+            "1608T-nySkkiAKWPb82j8Ky3goi-JdAAO",
+            "16CqynJjLzEXxBPs1NFNOPDmI29cFTf7C",
+            "16KV3yHsv-JRiTNOTn6hk8rQVj29Zy0CJ",
+            "16NAFVFZn-cAE57ABjRhDKjJomKK-_FtG",
+            "16Qinseqr080DXqQh68bMmZ__NaQgwDUw",
+            "17TglQXxIlhtYelkdpZYUMcXPYrlVD36L",
+            "17p8zVO_3ZIFuJssbCb1IqH4V-reAogDB",
+            "17pgHc4kp7c7x1FY_Ir4-Rcwfn-Z4kCse",
         ] {
             let pdf_path = manifest_dir.join(format!("../../data/stg/{stem}.pdf"));
-            convert_with_options(
+            if let Err(error) = convert_with_options(
                 std::slice::from_ref(&pdf_path),
                 &output_dir,
                 ConversionOptions {
@@ -234,20 +243,34 @@ mod tests {
                     markdown_enabled: true,
                     ..ConversionOptions::default()
                 },
-            )?;
-            let actual_json = serde_json::from_slice::<serde_json::Value>(&fs::read(
-                output_dir.join(format!("{stem}.json")),
-            )?)?;
-            let expected_json = serde_json::from_slice::<serde_json::Value>(&fs::read(
-                manifest_dir.join(format!("../../data/stg/{stem}.json")),
-            )?)?;
-            assert_eq!(actual_json, expected_json, "JSON mismatch for data/stg/{stem}");
-            assert_eq!(
-                fs::read(output_dir.join(format!("{stem}.md")))?,
-                fs::read(manifest_dir.join(format!("../../data/stg/{stem}.md")))?,
-                "Markdown mismatch for data/stg/{stem}"
-            );
+            ) {
+                failures.push(format!("{stem}: conversion failed: {error:#}"));
+                continue;
+            }
+
+            match (
+                read_json(output_dir.join(format!("{stem}.json"))),
+                read_json(manifest_dir.join(format!("../../data/stg/{stem}.json"))),
+            ) {
+                (Ok(actual), Ok(expected)) if actual == expected => {}
+                (Ok(_), Ok(_)) => failures.push(format!("{stem}: JSON mismatch")),
+                (actual, expected) => failures.push(format!(
+                    "{stem}: JSON read failed (actual: {actual:?}, expected: {expected:?})"
+                )),
+            }
+
+            match (
+                fs::read(output_dir.join(format!("{stem}.md"))),
+                fs::read(manifest_dir.join(format!("../../data/stg/{stem}.md"))),
+            ) {
+                (Ok(actual), Ok(expected)) if actual == expected => {}
+                (Ok(_), Ok(_)) => failures.push(format!("{stem}: Markdown mismatch")),
+                (actual, expected) => failures.push(format!(
+                    "{stem}: Markdown read failed (actual: {actual:?}, expected: {expected:?})"
+                )),
+            }
         }
+        assert!(failures.is_empty(), "STD1 fixture mismatches:\n{}", failures.join("\n"));
         Ok(())
     }
 }

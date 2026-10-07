@@ -158,3 +158,10 @@ comparison harness for representative `data/stg` text/list, table, and
 image/table PDFs. The test is ignored pending parser parity; a 98-case probe
 found zero exact matches, with encoded-font text, missing coordinates, and
 image extraction differences recorded in `data/oracle/manifest.toml`.
+
+2026-10-07 — Completed STD1. Activated the regression harness for exactly ten
+complete `data/stg` PDF/JSON/Markdown triplets, recorded their coverage in the
+manifest, and made JSON/Markdown comparisons continue across all fixtures with
+fixture-specific failure reporting. `cargo check --workspace --locked` and
+strict workspace Clippy pass; the active regression and full workspace tests
+report the expected ten-fixture parity mismatches for STD2.

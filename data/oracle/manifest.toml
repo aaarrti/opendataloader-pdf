@@ -93,20 +93,67 @@ O1 = ["lorem", "multipage", "raster"]
 V1 = ["lorem", "multipage", "table", "raster", "sanitization", "invalid-chars"]
 X1 = ["lorem", "multipage", "table", "raster"]
 STD1 = [
-    "data/stg/1hSAawHGuQXnBe5ZnhxZtHEoRDj4ngRBG",
-    "data/stg/17f1tgTOxzVUhGYE3hshKnGKzi5Y7nt7x",
-    "data/stg/1d3itesSOkNtIejyfwiswaypOiKcFcqY7",
+    "data/stg/10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj",
+    "data/stg/15TuRJyctl-q_fH8h2x1BDSwcOkVp2X-F",
+    "data/stg/1608T-nySkkiAKWPb82j8Ky3goi-JdAAO",
+    "data/stg/16CqynJjLzEXxBPs1NFNOPDmI29cFTf7C",
+    "data/stg/16KV3yHsv-JRiTNOTn6hk8rQVj29Zy0CJ",
+    "data/stg/16NAFVFZn-cAE57ABjRhDKjJomKK-_FtG",
+    "data/stg/16Qinseqr080DXqQh68bMmZ__NaQgwDUw",
+    "data/stg/17TglQXxIlhtYelkdpZYUMcXPYrlVD36L",
+    "data/stg/17p8zVO_3ZIFuJssbCb1IqH4V-reAogDB",
+    "data/stg/17pgHc4kp7c7x1FY_Ir4-Rcwfn-Z4kCse",
 ]
 
 [stg_regression]
 test = "tests::stg_regression_matches_selected_oracles"
-status = "blocked"
-evidence = "A 98-case probe found zero exact JSON and Markdown matches. The selected cases cover text/list, table, and image/table pages; failures expose encoded-font text, missing coordinates, and image extraction differences."
+status = "active"
+evidence = "STD1 runs exactly ten complete PDF/JSON/Markdown triplets, collects fixture-specific conversion, JSON, and Markdown failures, and compares all ten on every invocation."
 blockers = [
     "lopdf text operands do not decode the embedded CJK font encodings used by the corpus",
     "the parser assigns page bounds instead of preserving text coordinates needed for semantic reconstruction",
     "image extraction and semantic element grouping do not yet match the Java oracle",
 ]
+
+[[STD1_fixture]]
+stem = "10-S1GgfUJW5-zg-Zt-F655FYCp_FEbQj"
+behaviors = ["multipage", "headings", "lists", "tables", "images", "captions"]
+
+[[STD1_fixture]]
+stem = "15TuRJyctl-q_fH8h2x1BDSwcOkVp2X-F"
+behaviors = ["multipage", "headings", "lists", "tables", "images", "captions"]
+
+[[STD1_fixture]]
+stem = "1608T-nySkkiAKWPb82j8Ky3goi-JdAAO"
+behaviors = ["multipage", "headings", "lists", "tables", "images", "captions"]
+
+[[STD1_fixture]]
+stem = "16CqynJjLzEXxBPs1NFNOPDmI29cFTf7C"
+behaviors = ["multipage", "headings", "lists", "tables", "images", "captions", "text blocks"]
+
+[[STD1_fixture]]
+stem = "16KV3yHsv-JRiTNOTn6hk8rQVj29Zy0CJ"
+behaviors = ["multipage", "headings", "lists", "tables", "images", "captions"]
+
+[[STD1_fixture]]
+stem = "16NAFVFZn-cAE57ABjRhDKjJomKK-_FtG"
+behaviors = ["multipage", "headings", "lists", "tables", "images", "captions", "text blocks"]
+
+[[STD1_fixture]]
+stem = "16Qinseqr080DXqQh68bMmZ__NaQgwDUw"
+behaviors = ["single page", "headings", "tables"]
+
+[[STD1_fixture]]
+stem = "17TglQXxIlhtYelkdpZYUMcXPYrlVD36L"
+behaviors = ["multipage", "headings", "tables", "images", "captions"]
+
+[[STD1_fixture]]
+stem = "17p8zVO_3ZIFuJssbCb1IqH4V-reAogDB"
+behaviors = ["multipage", "headings", "lists", "tables", "images", "captions", "text blocks"]
+
+[[STD1_fixture]]
+stem = "17pgHc4kp7c7x1FY_Ir4-Rcwfn-Z4kCse"
+behaviors = ["multipage", "headings", "lists", "tables", "images", "captions", "text blocks"]
 
 # V1 traceability. Partial items keep their remaining parity gap explicit.
 [[checklist]]
