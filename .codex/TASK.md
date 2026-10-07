@@ -422,13 +422,14 @@ finished modules.
 
 ## Quality follow-up tasks
 
-- [ ] **LINT1 — Resolve Rust Clippy findings.** **Depends on:** none.
+- [x] **LINT1 — Resolve Rust Clippy findings.** **Depends on:** none.
   Update the lint findings in `crates/opendataloader_core/src/parser.rs` and
   `crates/opendataloader_core/src/lib.rs`: replace the manual character
   comparison, collapse the nested conditional, remove the needless borrow,
   use slice iteration, and avoid cloning a path just to create a one-item
   slice. Preserve conversion behavior. **Acceptance:**
   `cargo clippy --workspace --all-targets --locked -- -D warnings` passes.
+  Implemented the five requested lint fixes in `parser.rs` and `lib.rs`.
 
 - [ ] **LINT2 — Apply Black formatting to the Python API.** **Depends on:**
   none. Format `packages/opendataloader/src/opendataloader/api.py` according

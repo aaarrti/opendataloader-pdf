@@ -109,7 +109,7 @@ fn xmp_value(xml: &str, tag: &str) -> Option<String> {
     let start = xml.find(&format!("<{tag}"))?;
     let content_start = xml[start..].find('>')? + start + 1;
     let end = xml[content_start..].find(&format!("</{tag}>"))? + content_start;
-    let value = xml[content_start..end].replace(|character: char| character == '<' || character == '>', "");
+    let value = xml[content_start..end].replace(['<', '>'], "");
     (!value.trim().is_empty()).then(|| value.trim().to_owned())
 }
 
@@ -148,20 +148,20 @@ fn page_chunks(
     for (parser_order, operation) in content.operations.iter().enumerate() {
         match operation.operator.as_str() {
             "Tj" | "'" | "\"" => {
-                if let Some(text) = operation.operands.last().and_then(pdf_text) {
-                    if !text.is_empty() {
-                        chunks.push(ParserChunk::Text(TextChunk {
-                            page_index,
-                            bounds: page_box(width, height),
-                            text,
-                            glyph_order: Vec::new(),
-                            character_spacing: None,
-                            font: FontInfo::default(),
-                            parser_order,
-                            structure_id: None,
-                            pdfua_tag: None,
-                        }));
-                    }
+                if let Some(text) = operation.operands.last().and_then(pdf_text)
+                    && !text.is_empty()
+                {
+                    chunks.push(ParserChunk::Text(TextChunk {
+                        page_index,
+                        bounds: page_box(width, height),
+                        text,
+                        glyph_order: Vec::new(),
+                        character_spacing: None,
+                        font: FontInfo::default(),
+                        parser_order,
+                        structure_id: None,
+                        pdfua_tag: None,
+                    }));
                 }
             }
             "TJ" => {

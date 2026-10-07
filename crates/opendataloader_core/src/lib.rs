@@ -53,7 +53,7 @@ pub fn convert_with_options(
     if !options.json_enabled && !options.markdown_enabled {
         return Ok(());
     }
-    fs::create_dir_all(&output_dir).with_context(|| format!("create output directory {}", output_dir.display()))?;
+    fs::create_dir_all(output_dir).with_context(|| format!("create output directory {}", output_dir.display()))?;
 
     if options.parallel && pdf_paths.len() > 1 {
         pdf_paths
@@ -61,7 +61,7 @@ pub fn convert_with_options(
             .try_for_each(|pdf_path| convert_one(pdf_path, output_dir.as_path(), &options))?;
     } else {
         pdf_paths
-            .into_iter()
+            .iter()
             .try_for_each(|pdf_path| convert_one(pdf_path, output_dir.as_path(), &options))?;
     }
     Ok(())
@@ -118,7 +118,7 @@ mod tests {
         fs::create_dir_all(&output_dir)?;
         let source = fs::read(&pdf_path)?;
         convert_with_options(
-            &[pdf_path.clone()],
+            std::slice::from_ref(&pdf_path),
             &output_dir,
             ConversionOptions {
                 json_enabled: true,

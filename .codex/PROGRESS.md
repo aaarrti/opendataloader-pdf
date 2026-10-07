@@ -135,3 +135,9 @@ Added colocated ABI tests, `docs/abi.md`, and a C compile/link smoke test.
  `OPENDATALOADER_PDF_LIBRARY` override. Bundled the release native library in
  the wheel and verified source tests, Python compilation, wheel contents, and
  installed-package conversion without Java or network access.
+
+2026-10-07 — Completed LINT1. Applied the five requested Clippy fixes in the
+Rust parser and conversion orchestration. `cargo check --workspace` and strict
+workspace Clippy pass. Core and CLI tests pass; the existing C ABI missing-input
+assertion remains the separate TEST1 failure. Formatting remains blocked by an
+unrelated pre-existing `markdown.rs` rustfmt difference.
