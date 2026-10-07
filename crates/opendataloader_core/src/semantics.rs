@@ -113,7 +113,9 @@ fn tables_from_page(page: &Page) -> Vec<SemanticElement> {
         .iter()
         .filter_map(|chunk| match chunk {
             ParserChunk::LineArt(line)
-                if !is_page_background(page, line.bounds, epsilon) && is_table_line(line.bounds) =>
+                if !is_page_background(page, line.bounds, epsilon)
+                    && !is_page_edge_line(page, line.bounds, epsilon)
+                    && is_table_line(line.bounds) =>
             {
                 Some(line.bounds)
             }
@@ -155,6 +157,17 @@ fn is_page_background(page: &Page, bounds: BoundingBox, epsilon: f64) -> bool {
         && bounds.bottom <= epsilon
         && bounds.right >= page.width - epsilon
         && bounds.top >= page.height - epsilon
+}
+
+fn is_page_edge_line(page: &Page, bounds: BoundingBox, epsilon: f64) -> bool {
+    let horizontal = bounds.top - bounds.bottom <= 2.0;
+    let vertical = bounds.right - bounds.left <= 2.0;
+    (horizontal
+        && bounds.left <= epsilon
+        && bounds.right >= page.width - epsilon)
+        || (vertical
+            && bounds.bottom <= epsilon
+            && bounds.top >= page.height - epsilon)
 }
 
 fn table_from_lines(page: &Page, text_lines: &[TextLine], lines: &[BoundingBox]) -> Option<SemanticElement> {
@@ -641,5 +654,53 @@ mod tests {
             matches!(&rows[1], SemanticElement::TableRow { cells, .. } if matches!(&cells[1], SemanticElement::TableCell { is_header: false, children, .. } if matches!(&children[0], SemanticElement::Paragraph { text, .. } if text == "1")))
         );
         assert_eq!(document.elements.len(), 1);
+    }
+
+    #[test]
+    fn ignores_page_frame_lines_when_reconstructing_tables() {
+        let page = Page {
+            index: 0,
+            width: 300.0,
+            height: 400.0,
+            chunks: vec![
+                ParserChunk::LineArt(LineArtChunk {
+                    page_index: 0,
+                    bounds: BoundingBox {
+                        left: 0.0,
+                        bottom: 399.0,
+                        right: 300.0,
+                        top: 400.0,
+                    },
+                    parser_order: 0,
+                }),
+                ParserChunk::LineArt(LineArtChunk {
+                    page_index: 0,
+                    bounds: BoundingBox {
+                        left: 0.0,
+                        bottom: 0.0,
+                        right: 1.0,
+                        top: 400.0,
+                    },
+                    parser_order: 1,
+                }),
+                ParserChunk::Text(TextChunk {
+                    page_index: 0,
+                    bounds: BoundingBox {
+                        left: 20.0,
+                        bottom: 100.0,
+                        right: 80.0,
+                        top: 120.0,
+                    },
+                    text: "body".into(),
+                    glyph_order: Vec::new(),
+                    character_spacing: None,
+                    font: FontInfo::default(),
+                    parser_order: 2,
+                    structure_id: None,
+                    pdfua_tag: None,
+                }),
+            ],
+        };
+        assert!(tables_from_page(&page).is_empty());
     }
 }

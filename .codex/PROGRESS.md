@@ -229,3 +229,10 @@ marked-content tag, and skips font-size heading inference for tagged text.
 The active ten-fixture STD3 regression still fails on broader structural-tag
 mapping and image-order parity; expected fixtures and comparisons remain
 unchanged.
+
+2026-10-07 — Advanced STD3 with one scoped semantic fix. Border-table
+reconstruction now ignores thin lines spanning a page edge, preventing page
+frames from becoming fabricated tables; added a colocated regression test.
+`cargo check --workspace --locked` passes and 26 non-regression workspace
+tests pass. The active ten-fixture gate still reports JSON and Markdown
+mismatches for all ten fixtures, so STD3 remains incomplete.

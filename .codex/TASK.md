@@ -578,6 +578,10 @@ finished modules.
   evidence-backed invalid-oracle findings; the committed expected files remain
   unchanged unless a task proves an oracle file itself is invalid and records
   the evidence.
+  Current iteration: filtered thin page-edge frame lines from border-table
+  detection and added a focused regression test. The ten-fixture gate still
+  reports JSON and Markdown mismatches for all ten cases, so this task remains
+  incomplete.
 
 - [x] **STD3-F1 — Preserve source font names and avoid false headings.**
   **Depends on:** STD3. **Parallel:** yes, with the remaining STD3 fixes.
